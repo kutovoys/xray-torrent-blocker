@@ -70,6 +70,10 @@ func handleLogEntry(line string) {
 	go BlockIP(ip)
 	log.Printf("User %s with IP: %s blocked for %d minutes\n", username[1], ip, config.BlockDuration)
 
+	if config.SendWebhook {
+		go SendWebhook(username[1], ip, "block")
+	}
+
 	go UnblockIPAfterDelay(ip, time.Duration(config.BlockDuration)*time.Minute, username[1])
 }
 
@@ -170,8 +174,47 @@ func UnblockIPAfterDelay(ip string, delay time.Duration, username string) {
 
 	log.Printf("User %s with IP: %s has been unblocked\n", username, ip)
 
+	if config.SendWebhook {
+		go SendWebhook(username, ip, "unblock")
+	}
+
 	if config.SendAdminMessage {
 		adminMsg := fmt.Sprintf(config.AdminUnblockTemplate, username, ip, config.Hostname, username)
 		go SendTelegramMessage(config.AdminChatID, adminMsg, config.AdminBotToken, "HTML", true)
+	}
+}
+
+func SendWebhook(username string, ip string, action string) {
+	if !config.SendWebhook || config.WebhookURL == "" {
+		return
+	}
+
+	payload := fmt.Sprintf(
+		config.WebhookTemplate,
+		username,
+		ip,
+		config.Hostname,
+		action,
+		time.Now().Format(time.RFC3339),
+	)
+
+	req, err := http.NewRequest("POST", config.WebhookURL, strings.NewReader(payload))
+	if err != nil {
+		log.Printf("Error creating webhook request: %v", err)
+		return
+	}
+	
+	req.Header.Set("Content-Type", "application/json")
+	
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error sending webhook: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Printf("Webhook returned unexpected status code: %d", resp.StatusCode)
 	}
 }

@@ -15,7 +15,7 @@ var Version string
 func main() {
 	initConfig()
 
-	log.Printf("Marzban torrent-blocker: %s", Version)
+	log.Printf("XRay torrent-blocker: %s", Version)
 	log.Printf("Service started on %s", config.Hostname)
 
 	utils.StartLogMonitor()
@@ -32,7 +32,7 @@ func initConfig() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("Marzban torrent-blocker: %s\n", Version)
+		fmt.Printf("XRay torrent-blocker: %s\n", Version)
 		os.Exit(0)
 	}
 
