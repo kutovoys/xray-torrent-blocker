@@ -33,6 +33,10 @@ var (
 <b>Server :</b> %s
 ➖➖➖➖➖➖➖➖➖
 <b>User tag :</b> #%s`
+
+	SendWebhook     bool
+	WebhookURL      string
+	WebhookTemplate string
 )
 
 var (
@@ -68,6 +72,9 @@ type Config struct {
 	SendAdminMessage    bool   `yaml:"SendAdminMessage"`
 	UserMessageTemplate string `yaml:"UserMessageTemplate"`
 	BlockMode           string `yaml:"BlockMode"`
+	SendWebhook         bool   `yaml:"SendWebhook"`
+	WebhookURL          string `yaml:"WebhookURL"`
+	WebhookTemplate     string `yaml:"WebhookTemplate"`
 }
 
 func LoadConfig(configPath string) error {
@@ -90,6 +97,8 @@ func LoadConfig(configPath string) error {
 	TorrentTag = cfg.TorrentTag
 	SendUserMessage = cfg.SendUserMessage
 	SendAdminMessage = cfg.SendAdminMessage
+	SendWebhook = cfg.SendWebhook
+	WebhookURL = cfg.WebhookURL
 
 	if cfg.UserMessageTemplate != "" {
 		Message = cfg.UserMessageTemplate
@@ -118,5 +127,12 @@ func LoadConfig(configPath string) error {
 	} else {
 		BlockMode = "ufw"
 	}
+
+	if cfg.WebhookTemplate != "" {
+		WebhookTemplate = cfg.WebhookTemplate
+	} else {
+		WebhookTemplate = `{"username":"%s","ip":"%s","server":"%s","action":"%s","timestamp":"%s"}`
+	}
+
 	return err
 }

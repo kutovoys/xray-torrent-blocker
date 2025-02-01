@@ -63,3 +63,16 @@ UserMessageTemplate: ""
 # Optional. Regular expression to extract the username from the log entry.
 # If not specified, the default value is used: "email: \\d+\\.(\\S+)". You can tweak the username extraction.
 UsernameRegex: "email: \\d+\\.(\\S+)"
+
+# Опционально. Отправлять ли уведомления через вебхук
+# Optional. Whether to send webhook notifications
+SendWebhook: false
+
+# Опционально. URL для отправки вебхуков
+# Optional. URL for sending webhooks
+WebhookURL: "https://your-webhook-url.com/endpoint"
+
+# Опционально. Шаблон JSON для вебхука
+# Optional. JSON template for webhook
+# Available variables: %s - username, %s - ip, %s - server, %s - action (block/unblock), %s - timestamp
+WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","timestamp":"%s"}'
