@@ -39,18 +39,18 @@ else
 fi
 
 echo "Downloading the latest version of torrent-blocker..."
-LATEST_RELEASE=$(curl -s https://api.github.com/repos/kutovoys/marzban-torrent-blocker/releases/latest | grep tag_name | cut -d '"' -f 4)
-URL="https://github.com/kutovoys/marzban-torrent-blocker/releases/download/${LATEST_RELEASE}/marzban-torrent-blocker-${LATEST_RELEASE}-linux-${ARCH}.tar.gz"
+LATEST_RELEASE=$(curl -s https://api.github.com/repos/kutovoys/xray-torrent-blocker/releases/latest | grep tag_name | cut -d '"' -f 4)
+URL="https://github.com/kutovoys/xray-torrent-blocker/releases/download/${LATEST_RELEASE}/xray-torrent-blocker-${LATEST_RELEASE}-linux-${ARCH}.tar.gz"
 
-curl -sL "$URL" -o torrent-blocker.tar.gz
+curl -sL "$URL" -o tblocker.tar.gz
 
 echo "Extracting files..."
-mkdir -p /opt/torrent-blocker
-tar -xzf torrent-blocker.tar.gz -C /opt/torrent-blocker --overwrite
-rm torrent-blocker.tar.gz
+mkdir -p /opt/tblocker
+tar -xzf tblocker.tar.gz -C /opt/tblocker --overwrite
+rm tblocker.tar.gz
 
-CONFIG_PATH="/opt/torrent-blocker/config.yaml"
-CONFIG_TEMPLATE_PATH="/opt/torrent-blocker/config.yaml.example"
+CONFIG_PATH="/opt/tblocker/config.yaml"
+CONFIG_TEMPLATE_PATH="/opt/tblocker/config.yaml.example"
 
 if [ ! -f "$CONFIG_PATH" ]; then
   mv "$CONFIG_TEMPLATE_PATH" "$CONFIG_PATH"
@@ -79,23 +79,23 @@ if $ask_for_input; then
 fi
 
 echo "Setting up systemd service..."
-curl -sL https://raw.githubusercontent.com/kutovoys/marzban-torrent-blocker/main/torrent-blocker.service -o /etc/systemd/system/torrent-blocker.service
+curl -sL https://raw.githubusercontent.com/kutovoys/xray-torrent-blocker/main/tblocker.service -o /etc/systemd/system/tblocker.service
 
 systemctl daemon-reload
-systemctl enable torrent-blocker
-systemctl start torrent-blocker
+systemctl enable tblocker
+systemctl start tblocker
 
-systemctl status torrent-blocker --no-pager
+systemctl status tblocker --no-pager
 
 echo ""
 echo "==============================================================="
 echo ""
 echo "Installation complete! The torrent-blocker service is running."
-echo ""
+echo "PLEASE SETUP UFW PROPERLY! (https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw-on-ubuntu)"
 echo "==============================================================="
 echo ""
 echo "You can configure additional options in the configuration file"
-echo "/opt/torrent-blocker/config.yaml"
+echo "/opt/tblocker/config.yaml"
 echo "It is possible to enable sending user notifications via Telegram."
 echo ""
 echo "==============================================================="

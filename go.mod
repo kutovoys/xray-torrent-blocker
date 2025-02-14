@@ -1,4 +1,4 @@
-module torrents-blocker
+module tblocker
 
 go 1.21
 

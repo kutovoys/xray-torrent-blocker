@@ -11,7 +11,7 @@ checksum:
 
 builds:
   - id: build
-    binary: torrent-blocker
+    binary: tblocker
     env:
       - CGO_ENABLED=0
     goos:

@@ -1,0 +1,12 @@
+[Unit]
+Description=XRay Torrent Blocker Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/tblocker/tblocker -c /opt/tblocker/config.yaml
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target 

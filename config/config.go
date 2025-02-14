@@ -37,6 +37,7 @@ var (
 	SendWebhook     bool
 	WebhookURL      string
 	WebhookTemplate string
+	StorageDir      string
 )
 
 var (
@@ -75,6 +76,7 @@ type Config struct {
 	SendWebhook         bool   `yaml:"SendWebhook"`
 	WebhookURL          string `yaml:"WebhookURL"`
 	WebhookTemplate     string `yaml:"WebhookTemplate"`
+	StorageDir          string `yaml:"StorageDir"`
 }
 
 func LoadConfig(configPath string) error {
@@ -132,6 +134,11 @@ func LoadConfig(configPath string) error {
 		WebhookTemplate = cfg.WebhookTemplate
 	} else {
 		WebhookTemplate = `{"username":"%s","ip":"%s","server":"%s","action":"%s","timestamp":"%s"}`
+	}
+
+	StorageDir = cfg.StorageDir
+	if StorageDir == "" {
+		StorageDir = "/opt/tblocker"
 	}
 
 	return err

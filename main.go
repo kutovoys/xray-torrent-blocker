@@ -6,8 +6,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"torrents-blocker/config"
-	"torrents-blocker/utils"
+	"tblocker/config"
+	"tblocker/storage"
+	"tblocker/utils"
 )
 
 var Version string
@@ -26,9 +27,7 @@ func initConfig() {
 	var showVersion bool
 
 	flag.StringVar(&configPath, "c", "", "Path to the configuration file")
-
 	flag.BoolVar(&showVersion, "v", false, "Display version")
-
 	flag.Parse()
 
 	if showVersion {
@@ -47,6 +46,12 @@ func initConfig() {
 	if err := config.LoadConfig(configPath); err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	store, err := storage.NewIPStorage(config.StorageDir, utils.UnblockIPAfterDelay)
+	if err != nil {
+		log.Fatalf("Failed to initialize IP storage: %v", err)
+	}
+	utils.SetIPStorage(store)
 
 	utils.ScheduleBlockedIPsUpdate()
 }

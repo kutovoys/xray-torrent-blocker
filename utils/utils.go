@@ -7,11 +7,18 @@ import (
 	"net/url"
 	"os/exec"
 	"strings"
+	"tblocker/config"
+	"tblocker/storage"
 	"time"
-	"torrents-blocker/config"
 
 	"github.com/hpcloud/tail"
 )
+
+var ipStorage *storage.IPStorage
+
+func SetIPStorage(storage *storage.IPStorage) {
+	ipStorage = storage
+}
 
 func StartLogMonitor() {
 	t, err := tail.TailFile(config.LogFile, tail.Config{
@@ -49,16 +56,16 @@ func handleLogEntry(line string) {
 		return
 	}
 
-	config.Mu.Lock()
-	defer config.Mu.Unlock()
-
-	if config.BlockedIPs[ip] {
+	if ipStorage.IsBlocked(ip) {
 		log.Printf("User %s with IP: %s is already blocked. Skipping...\n", username[1], ip)
 		return
 	}
-	config.BlockedIPs[ip] = true
 
-	if config.SendUserMessage {
+	if err := ipStorage.AddBlockedIP(ip, username[1], time.Duration(config.BlockDuration)*time.Minute); err != nil {
+		log.Printf("Error saving blocked IP to storage: %v", err)
+	}
+
+	if config.SendUserMessage && len(tid) >= 2 {
 		go SendTelegramMessage(tid[1], config.Message, config.BotToken, "HTML", true)
 	}
 
@@ -94,14 +101,20 @@ func UpdateBlockedIPs() {
 		return
 	}
 
-	config.Mu.Lock()
-	defer config.Mu.Unlock()
-
-	config.BlockedIPs = make(map[string]bool)
+	currentBlockedIPs := make(map[string]bool)
 	for _, line := range strings.Split(string(output), "\n") {
 		ip := config.IpRegex.FindString(line)
 		if ip != "" {
-			config.BlockedIPs[ip] = true
+			currentBlockedIPs[ip] = true
+		}
+	}
+
+	blockedInStorage := ipStorage.GetBlockedIPs()
+
+	for ip, info := range blockedInStorage {
+		if time.Now().Before(info.BlockedUntil) && !currentBlockedIPs[ip] {
+			go BlockIP(ip)
+			log.Printf("Restoring block for IP: %s (user: %s)\n", ip, info.Username)
 		}
 	}
 }
@@ -147,12 +160,18 @@ func BlockIP(ip string) {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Fatalf("Error blocking IP: %v", err)
+		log.Printf("Error blocking IP: %v", err)
+		return
 	}
 }
 
 func UnblockIPAfterDelay(ip string, delay time.Duration, username string) {
 	time.Sleep(delay)
+
+	if ipStorage.IsBlocked(ip) {
+		log.Printf("Skipping unblock for IP %s as it has an active block", ip)
+		return
+	}
 
 	var cmd *exec.Cmd
 
@@ -168,9 +187,9 @@ func UnblockIPAfterDelay(ip string, delay time.Duration, username string) {
 		return
 	}
 
-	config.Mu.Lock()
-	delete(config.BlockedIPs, ip)
-	config.Mu.Unlock()
+	if err := ipStorage.RemoveBlockedIP(ip); err != nil {
+		log.Printf("Error removing IP from storage: %v", err)
+	}
 
 	log.Printf("User %s with IP: %s has been unblocked\n", username, ip)
 
@@ -203,9 +222,9 @@ func SendWebhook(username string, ip string, action string) {
 		log.Printf("Error creating webhook request: %v", err)
 		return
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -213,7 +232,7 @@ func SendWebhook(username string, ip string, action string) {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("Webhook returned unexpected status code: %d", resp.StatusCode)
 	}

@@ -1,10 +1,9 @@
-# Marzban Torrent Blocker
+# Xray Torrent Blocker
 
-[![en](https://img.shields.io/badge/lang-en-red)](https://github.com/kutovoys/marzban-torrent-blocker/blob/main/README.md)
-[![ru](https://img.shields.io/badge/lang-ru-blue)](https://github.com/kutovoys/marzban-torrent-blocker/blob/main/README.ru.md)
+[![en](https://img.shields.io/badge/lang-en-red)](https://github.com/kutovoys/xray-torrent-blocker/blob/main/README.md)
+[![ru](https://img.shields.io/badge/lang-ru-blue)](https://github.com/kutovoys/xray-torrent-blocker/blob/main/README.ru.md)
 
-Marzban Torrent Blocker is an application designed to block torrent usage by users of the [Marzban](https://github.com/Gozargah/Marzban) panel. The application analyzes logs, detects torrent activity, and temporarily blocks the user, sending notifications to the administrator via Telegram, and optionally to the user.
-It can also work with other panels and directly with Xray.
+Xray Torrent Blocker is an application designed to block torrent usage by users of the [Xray-based](https://github.com/XTLS/Xray-core) panels. The application analyzes logs, detects torrent activity, and temporarily blocks the user, sending notifications to the administrator via Telegram, and optionally to the user.
 
 ## Features:
 
@@ -16,6 +15,9 @@ It can also work with other panels and directly with Xray.
 - Configurable block duration.
 - Supports temporary blocking with automatic unblocking.
 - Simple installation and setup via systemd.
+- Persistent block state between application restarts.
+- Automatic block restoration after system reboot.
+- Automatic cleanup of expired blocks.
 
 ## Preparation
 
@@ -66,7 +68,7 @@ It can also work with other panels and directly with Xray.
   ```yaml
   volumes:
     - /var/lib/marzban:/var/lib/marzban
-    - /var/lib/marzban-node:/var/lib/marzban-node #новый volume
+    - /var/lib/marzban-node:/var/lib/marzban-node #new volume
   ```
 
 - Restart the panel with the following command:
@@ -96,12 +98,12 @@ To automatically install the application, follow these steps:
 - The script will automatically install all dependencies, download the latest release, ask for the admin `Token` and `Chat ID`, and start the service.
 - After installation, you can control the application via systemd:
   ```bash
-  systemctl start/status/stop torrent-blocker
+  systemctl start/status/stop tblocker
   ```
 
 ## Configuration
 
-After installation, you can configure the application's behavior via the configuration file located at: `/opt/torrent-blocker/config.yaml`.
+After installation, you can configure the application's behavior via the configuration file located at: `/opt/tblocker/config.yaml`.
 
 Key configuration parameters:
 
@@ -116,8 +118,9 @@ Key configuration parameters:
 - **TidRegex** — regular expression to extract the user's `CHAT_ID` from the log entry. Optional.
 - **UserMessageTemplate** — the message template for notifying the user. Optional.
 - **UsernameRegex** — regular expression to extract the user's login from the log entry. Optional.
+- **StorageDir** — path to the directory for storing block data. Default: `/opt/tblocker`
 
-An example configuration file with detailed comments is available at `/opt/torrent-blocker/config.yaml`.
+An example configuration file with detailed comments is available at `/opt/tblocker/config.yaml.example`.
 
 ### Example for Sending Notifications to Users:
 
@@ -129,6 +132,17 @@ For example, if the user's login in Marzban looks like this: `kutovoys_tgid-1234
 - **UsernameRegex**: `email: \\d+\\.(\\w+)_tgid-`
 
 In this case, the administrator will receive notifications with the username `kutovoys`, and the user will also be notified directly via Telegram when they are blocked.
+
+### Block Data Storage
+
+The application stores block information in a JSON file in the directory specified by the `StorageDir` parameter. This ensures:
+
+- Persistent block state between application restarts
+- Automatic block restoration after system reboot
+- Proper user unblocking even after application restart
+- Automatic cleanup of expired blocks
+
+The block data file is located at: `/opt/tblocker/blocked_ips.json`
 
 ## Contributing
 

@@ -76,3 +76,7 @@ WebhookURL: "https://your-webhook-url.com/endpoint"
 # Optional. JSON template for webhook
 # Available variables: %s - username, %s - ip, %s - server, %s - action (block/unblock), %s - timestamp
 WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","timestamp":"%s"}'
+
+# Опционально. Путь к директории для хранения файла с заблокированными IP-адресами.
+# Optional. Path to the directory for storing the blocked IP addresses file.
+StorageDir: "/opt/tblocker"
