@@ -62,7 +62,7 @@ UserMessageTemplate: ""
 # Если не задано, используется значение по умолчанию: "email: \\d+\\.(\\S+)". Можно оттюнить вывод имени пользователя.
 # Optional. Regular expression to extract the username from the log entry.
 # If not specified, the default value is used: "email: \\d+\\.(\\S+)". You can tweak the username extraction.
-UsernameRegex: "email: \\d+\\.(\\S+)"
+UsernameRegex: "email:\\s+(\\S+)"
 
 # Опционально. Отправлять ли уведомления через вебхук
 # Optional. Whether to send webhook notifications
