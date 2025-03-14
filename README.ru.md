@@ -101,6 +101,34 @@ volumes:
   systemctl start/status/stop tblocker
   ```
 
+### Конфигурация logrotate для Marzban Node
+
+Ниже представлена конфигурация, которая необходима для того, чтобы избежать переполнения вашей системы логами.
+
+```bash
+/var/lib/marzban-node/*.log {
+    size 50M
+    rotate 5
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+```
+Вы можете установить logrotate и применить эту конфигурацию с помощью следующей команды:
+```bash
+sudo apt update && sudo apt install logrotate && sudo bash -c 'cat > /etc/logrotate.d/marzban-node <<EOF
+/var/lib/marzban-node/*.log {
+    size 50M
+    rotate 5
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+EOF' && logrotate -vf /etc/logrotate.d/marzban-node
+```
+
 ## Конфигурация
 
 После установки вы можете настроить поведение приложения через файл конфигурации, который находится по пути: `/opt/tblocker/config.yaml`.

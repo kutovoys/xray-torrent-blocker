@@ -101,6 +101,34 @@ To automatically install the application, follow these steps:
   systemctl start/status/stop tblocker
   ```
 
+### Logrotate Configuration for Marzban Node
+
+The configuration below is necessary to prevent your system from being clogged by logs.
+
+```bash
+/var/lib/marzban-node/*.log {
+    size 50M
+    rotate 5
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+```
+You can install logrotate and apply this configuration with the following command:
+```bash
+sudo apt update && sudo apt install logrotate && sudo bash -c 'cat > /etc/logrotate.d/marzban-node <<EOF
+/var/lib/marzban-node/*.log {
+    size 50M
+    rotate 5
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+EOF' && logrotate -vf /etc/logrotate.d/marzban-node
+```
+
 ## Configuration
 
 After installation, you can configure the application's behavior via the configuration file located at: `/opt/tblocker/config.yaml`.
