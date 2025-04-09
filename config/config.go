@@ -37,6 +37,7 @@ var (
 	SendWebhook     bool
 	WebhookURL      string
 	WebhookTemplate string
+	WebhookHeaders  map[string]string
 	StorageDir      string
 )
 
@@ -61,22 +62,23 @@ var (
 )
 
 type Config struct {
-	LogFile             string `yaml:"LogFile"`
-	BotToken            string `yaml:"BotToken"`
-	AdminBotToken       string `yaml:"AdminBotToken"`
-	AdminChatID         string `yaml:"AdminChatID"`
-	BlockDuration       int    `yaml:"BlockDuration"`
-	TorrentTag          string `yaml:"TorrentTag"`
-	TidRegex            string `yaml:"TidRegex"`
-	UsernameRegex       string `yaml:"UsernameRegex"`
-	SendUserMessage     bool   `yaml:"SendUserMessage"`
-	SendAdminMessage    bool   `yaml:"SendAdminMessage"`
-	UserMessageTemplate string `yaml:"UserMessageTemplate"`
-	BlockMode           string `yaml:"BlockMode"`
-	SendWebhook         bool   `yaml:"SendWebhook"`
-	WebhookURL          string `yaml:"WebhookURL"`
-	WebhookTemplate     string `yaml:"WebhookTemplate"`
-	StorageDir          string `yaml:"StorageDir"`
+	LogFile             string            `yaml:"LogFile"`
+	BotToken            string            `yaml:"BotToken"`
+	AdminBotToken       string            `yaml:"AdminBotToken"`
+	AdminChatID         string            `yaml:"AdminChatID"`
+	BlockDuration       int               `yaml:"BlockDuration"`
+	TorrentTag          string            `yaml:"TorrentTag"`
+	TidRegex            string            `yaml:"TidRegex"`
+	UsernameRegex       string            `yaml:"UsernameRegex"`
+	SendUserMessage     bool              `yaml:"SendUserMessage"`
+	SendAdminMessage    bool              `yaml:"SendAdminMessage"`
+	UserMessageTemplate string            `yaml:"UserMessageTemplate"`
+	BlockMode           string            `yaml:"BlockMode"`
+	SendWebhook         bool              `yaml:"SendWebhook"`
+	WebhookURL          string            `yaml:"WebhookURL"`
+	WebhookTemplate     string            `yaml:"WebhookTemplate"`
+	StorageDir          string            `yaml:"StorageDir"`
+	WebhookHeaders      map[string]string `yaml:"WebhookHeaders"`
 }
 
 func LoadConfig(configPath string) error {
@@ -101,6 +103,7 @@ func LoadConfig(configPath string) error {
 	SendAdminMessage = cfg.SendAdminMessage
 	SendWebhook = cfg.SendWebhook
 	WebhookURL = cfg.WebhookURL
+	WebhookHeaders = cfg.WebhookHeaders
 
 	if cfg.UserMessageTemplate != "" {
 		Message = cfg.UserMessageTemplate
@@ -129,7 +132,9 @@ func LoadConfig(configPath string) error {
 	} else {
 		BlockMode = "ufw"
 	}
-
+	if WebhookHeaders == nil {
+		WebhookHeaders = make(map[string]string)
+	}
 	if cfg.WebhookTemplate != "" {
 		WebhookTemplate = cfg.WebhookTemplate
 	} else {

@@ -18,7 +18,7 @@ Xray Torrent Blocker is an application designed to block torrent usage by users 
 - Persistent block state between application restarts.
 - Automatic block restoration after system reboot.
 - Automatic cleanup of expired blocks.
-
+- Supports webhook.
 ## Preparation
 
 ### Xray Configuration
@@ -147,6 +147,9 @@ Key configuration parameters:
 - **UserMessageTemplate** — the message template for notifying the user. Optional.
 - **UsernameRegex** — regular expression to extract the user's login from the log entry. Optional.
 - **StorageDir** — path to the directory for storing block data. Default: `/opt/tblocker`
+- **SendWebhook** — Enables webhooks. Optional. Default: `false`
+- **WebhookURL**  — The URL to which webhooks will be sent. Optional.
+- **WebhookHeaders** — A set of additional HTTP headers added to webhooks. Optional.  
 
 An example configuration file with detailed comments is available at `/opt/tblocker/config.yaml.example`.
 
