@@ -116,7 +116,9 @@ volumes:
     copytruncate
 }
 ```
+
 Вы можете установить logrotate и применить эту конфигурацию с помощью следующей команды:
+
 ```bash
 sudo apt update && sudo apt install logrotate && sudo bash -c 'cat > /etc/logrotate.d/marzban-node <<EOF
 /var/lib/marzban-node/*.log {
@@ -179,3 +181,7 @@ EOF' && logrotate -vf /etc/logrotate.d/marzban-node
 ## Contributing
 
 Мы приветствуем вклад от сообщества! Если у вас есть идеи для улучшений или вы нашли баг, пожалуйста, создайте issue или отправьте pull request на GitHub.
+
+## Рекомендация VPN
+
+Для безопасного и надежного доступа в интернет мы рекомендуем [BlancVPN](https://getblancvpn.com/?ref=tblocker). Используйте промокод `TRYBLANCVPN` для получения скидки 15% на вашу подписку.

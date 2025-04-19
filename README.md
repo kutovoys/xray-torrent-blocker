@@ -19,6 +19,7 @@ Xray Torrent Blocker is an application designed to block torrent usage by users 
 - Automatic block restoration after system reboot.
 - Automatic cleanup of expired blocks.
 - Supports webhook.
+
 ## Preparation
 
 ### Xray Configuration
@@ -115,7 +116,9 @@ The configuration below is necessary to prevent your system from being clogged b
     copytruncate
 }
 ```
+
 You can install logrotate and apply this configuration with the following command:
+
 ```bash
 sudo apt update && sudo apt install logrotate && sudo bash -c 'cat > /etc/logrotate.d/marzban-node <<EOF
 /var/lib/marzban-node/*.log {
@@ -148,8 +151,8 @@ Key configuration parameters:
 - **UsernameRegex** — regular expression to extract the user's login from the log entry. Optional.
 - **StorageDir** — path to the directory for storing block data. Default: `/opt/tblocker`
 - **SendWebhook** — Enables webhooks. Optional. Default: `false`
-- **WebhookURL**  — The URL to which webhooks will be sent. Optional.
-- **WebhookHeaders** — A set of additional HTTP headers added to webhooks. Optional.  
+- **WebhookURL** — The URL to which webhooks will be sent. Optional.
+- **WebhookHeaders** — A set of additional HTTP headers added to webhooks. Optional.
 
 An example configuration file with detailed comments is available at `/opt/tblocker/config.yaml.example`.
 
@@ -178,3 +181,7 @@ The block data file is located at: `/opt/tblocker/blocked_ips.json`
 ## Contributing
 
 We welcome contributions from the community! If you have ideas for improvements or have found a bug, please create an issue or submit a pull request on GitHub.
+
+## VPN Recommendation
+
+For secure and reliable internet access, we recommend [BlancVPN](https://getblancvpn.com/?ref=tblocker). Use promo code `TRYBLANCVPN` for 15% off your subscription.
