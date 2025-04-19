@@ -80,3 +80,11 @@ WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","timest
 # Опционально. Путь к директории для хранения файла с заблокированными IP-адресами.
 # Optional. Path to the directory for storing the blocked IP addresses file.
 StorageDir: "/opt/tblocker"
+
+# Опционально. Заголовки, которые будут добавлены к webhook-запросу.
+# Можно использовать для авторизации или кастомной информации.
+# Optional. Headers to include in the webhook request.
+# Can be used for authorization or custom metadata.
+WebhookHeaders:
+  Authorization: "Bearer your-secret-token"
+  X-Custom-Header: "some-value"
