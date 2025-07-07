@@ -56,6 +56,11 @@ func handleLogEntry(line string) {
 		return
 	}
 
+	if IsBypassedIP(ip) {
+		log.Printf("IP %s is in the bypass list. Skipping...\n", ip)
+		return
+	}
+
 	if ipStorage.IsBlocked(ip) {
 		log.Printf("User %s with IP: %s is already blocked. Skipping...\n", username[1], ip)
 		return
@@ -147,6 +152,11 @@ func SendTelegramMessage(chatID string, message string, botToken string, parseMo
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Unexpected status code: %d", resp.StatusCode)
 	}
+}
+
+func IsBypassedIP(ip string) bool {
+	_, exists := config.BypassIPSet[ip]
+	return exists
 }
 
 func BlockIP(ip string) {

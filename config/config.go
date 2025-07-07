@@ -2,11 +2,9 @@ package config
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"os"
 	"regexp"
-	"sync"
-
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -54,11 +52,12 @@ var (
 	TidRegex             *regexp.Regexp
 	DefaultUsernameRegex = `email: \d+\.(\S+)`
 	UsernameRegex        *regexp.Regexp
-	BlockedIPs           = make(map[string]bool)
-	Mu                   sync.Mutex
 	SendUserMessage      bool
 	SendAdminMessage     bool
 	BlockMode            string
+	BypassIPSet          = make(map[string]struct{})
+	// BlockedIPs        = make(map[string]bool) todo
+	// Mu                sync.Mutex todo
 )
 
 type Config struct {
@@ -74,6 +73,7 @@ type Config struct {
 	SendAdminMessage    bool              `yaml:"SendAdminMessage"`
 	UserMessageTemplate string            `yaml:"UserMessageTemplate"`
 	BlockMode           string            `yaml:"BlockMode"`
+	BypassIPS           []string          `yaml:"BypassIPS"`
 	SendWebhook         bool              `yaml:"SendWebhook"`
 	WebhookURL          string            `yaml:"WebhookURL"`
 	WebhookTemplate     string            `yaml:"WebhookTemplate"`
@@ -131,6 +131,14 @@ func LoadConfig(configPath string) error {
 		BlockMode = cfg.BlockMode
 	} else {
 		BlockMode = "ufw"
+	}
+	if cfg.BypassIPS != nil {
+		BypassIPSet = make(map[string]struct{})
+		for _, ip := range cfg.BypassIPS {
+			BypassIPSet[ip] = struct{}{}
+		}
+	} else {
+		BypassIPSet = make(map[string]struct{})
 	}
 	if WebhookHeaders == nil {
 		WebhookHeaders = make(map[string]string)
