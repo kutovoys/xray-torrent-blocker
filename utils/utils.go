@@ -57,7 +57,8 @@ func handleLogEntry(line string) {
 	}
 
 	if IsBypassedIP(ip) {
-		log.Printf("IP %s is in the bypass list. Skipping...\n", ip)
+		// log.Printf("IP %s is in the bypass list. Skipping...\n", ip)
+		// printing removed due to large amount of log strings
 		return
 	}
 

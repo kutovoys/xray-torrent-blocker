@@ -133,9 +133,11 @@ func LoadConfig(configPath string) error {
 		BlockMode = "ufw"
 	}
 	if cfg.BypassIPS != nil {
+		fmt.Println("Bypass IPS list:")
 		BypassIPSet = make(map[string]struct{})
 		for _, ip := range cfg.BypassIPS {
 			BypassIPSet[ip] = struct{}{}
+			fmt.Printf("- %s\n", ip)
 		}
 	} else {
 		BypassIPSet = make(map[string]struct{})
