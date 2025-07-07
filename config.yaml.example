@@ -16,6 +16,12 @@ TorrentTag: "TORRENT"
 # Available options: "ufw" or "iptables". Defaults to "ufw".
 BlockMode: "ufw"
 
+# Опциональный. Указывает IP-адреса, которые не будут заблокированы.
+# Optional. Specifies the IP addresses that will not be blocked.
+BypassIPS:
+  - "127.0.0.1"
+  - "::1"
+
 # Опциональный. Указывает, отправлять ли сообщение администратору при блокировке.
 # Если false или не задан, сообщения администратору не будут отправляться.
 # Optional. Determines whether to send an admin message upon blocking.
