@@ -141,6 +141,8 @@ Key configuration parameters:
 - **LogFile** — the path to the log file to be monitored. Default: `/var/lib/marzban-node/access.log`
 - **BlockDuration** — the duration of the user's block in minutes. Default: `10`
 - **TorrentTag** — the tag used to identify log entries related to torrents. Default: `TORRENT`
+- **BlockMode** — specifies which tool to use for IP address blocking. Optional. Default: `ufw`
+- **BypassIPS** — specifies the IP addresses that will not be blocked. Optional. Default: `127.0.0.1, ::1`
 - **SendAdminMessage** — whether to send notifications to the administrator. Optional. Default: `true`
 - **AdminBotToken** — the admin bot token for notifications. Optional.
 - **AdminChatID** — the admin chat (or user) ID to which notifications will be sent. Optional.
@@ -149,9 +151,10 @@ Key configuration parameters:
 - **TidRegex** — regular expression to extract the user's `CHAT_ID` from the log entry. Optional.
 - **UserMessageTemplate** — the message template for notifying the user. Optional.
 - **UsernameRegex** — regular expression to extract the user's login from the log entry. Optional.
+- **SendWebhook** — enables webhooks. Optional. Default: `false`
+- **WebhookURL** — the URL to which webhooks will be sent. Optional.
+- **WebhookTemplate** - JSON template for webhook. Optional.
 - **StorageDir** — path to the directory for storing block data. Default: `/opt/tblocker`
-- **SendWebhook** — Enables webhooks. Optional. Default: `false`
-- **WebhookURL** — The URL to which webhooks will be sent. Optional.
 - **WebhookHeaders** — A set of additional HTTP headers added to webhooks. Optional.
 
 An example configuration file with detailed comments is available at `/opt/tblocker/config.yaml.example`.
