@@ -61,11 +61,12 @@ fi
 
 check_placeholder() {
   local key="$1"
-  grep -q "$key: \"ADMIN_" "$CONFIG_PATH"
+  local value="$2"
+  grep -qE "^$key:\s*\"?$value\"?" "$CONFIG_PATH"
 }
 
 ask_for_input=true
-if ! check_placeholder "AdminBotToken" && ! check_placeholder "AdminChatID"; then
+if (! check_placeholder "AdminBotToken" "ADMIN_" && ! check_placeholder "AdminChatID" "ADMIN_") || check_placeholder "SendAdminMessage" "false"; then
   ask_for_input=false
   echo "Admin bot token and Chat ID are already set in the config. Skipping input."
 fi
