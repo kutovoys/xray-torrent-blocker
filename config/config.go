@@ -148,7 +148,7 @@ func LoadConfig(configPath string) error {
 	if cfg.WebhookTemplate != "" {
 		WebhookTemplate = cfg.WebhookTemplate
 	} else {
-		WebhookTemplate = `{"username":"%s","ip":"%s","server":"%s","action":"%s","timestamp":"%s"}`
+		WebhookTemplate = `{"username":"%s","ip":"%s","server":"%s","action":"%s","duration":%d,timestamp":"%s"}`
 	}
 
 	StorageDir = cfg.StorageDir

@@ -225,6 +225,7 @@ func SendWebhook(username string, ip string, action string) {
 		ip,
 		config.Hostname,
 		action,
+		config.BlockDuration,
 		time.Now().Format(time.RFC3339),
 	)
 
