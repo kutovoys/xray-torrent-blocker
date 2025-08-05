@@ -87,7 +87,7 @@ func handleLogEntry(line string) {
 		go SendWebhook(username[1], ip, "block")
 	}
 
-	go UnblockIPAfterDelay(ip, time.Duration(config.BlockDuration)*time.Minute, username[1])
+	//go UnblockIPAfterDelay(ip, time.Duration(config.BlockDuration)*time.Minute, username[1])
 }
 
 func ScheduleBlockedIPsUpdate() {
