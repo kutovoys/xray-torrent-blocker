@@ -248,6 +248,14 @@ For other Xray-based panels, ensure that:
 
 ## Tips
 
+### Reading logs
+
+To read `tblocker` logs, you can use the following command:
+
+```bash
+journalctl -u tblocker -f --no-pager
+```
+
 ### Logrotate Configuration
 
 To prevent log files from consuming too much disk space, configure logrotate:
