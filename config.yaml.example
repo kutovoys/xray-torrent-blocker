@@ -1,6 +1,6 @@
 # Обязательный. Путь к файлу логов, который будет мониториться.
 # Required. Path to the log file to be monitored.
-LogFile: "/var/lib/marzban-node/access.log"
+LogFile: "/var/log/remnanode/access.log"
 
 # Обязательный. Продолжительность блокировки IP-адреса в минутах.
 # Required. Duration of IP address blocking in minutes.
@@ -11,10 +11,12 @@ BlockDuration: 10
 TorrentTag: "TORRENT"
 
 # Опциональный. Указывает, какой инструмент использовать для блокировки IP-адресов.
-# Допустимые значения: "ufw" или "iptables". По умолчанию используется "ufw".
+# Допустимые значения: "iptables" или "nft". По умолчанию используется "iptables".
+# Приложение автоматически выберет доступный файрвол, если указанный недоступен.
 # Optional. Specifies which tool to use for IP address blocking.
-# Available options: "ufw" or "iptables". Defaults to "ufw".
-BlockMode: "ufw"
+# Available options: "iptables" or "nft". Defaults to "iptables".
+# The application will automatically select an available firewall if the specified one is not available.
+BlockMode: "iptables"
 
 # Опциональный. Указывает IP-адреса, которые не будут заблокированы.
 # Optional. Specifies the IP addresses that will not be blocked.
@@ -22,53 +24,11 @@ BypassIPS:
   - "127.0.0.1"
   - "::1"
 
-# Опциональный. Указывает, отправлять ли сообщение администратору при блокировке.
-# Если false или не задан, сообщения администратору не будут отправляться.
-# Optional. Determines whether to send an admin message upon blocking.
-# If set to false or not specified, no admin messages will be sent.
-SendAdminMessage: true
-
-# Опциональный. Токен бота для отправки сообщений администратору через Telegram.
-# Обязательно, если включена опция SendAdminMessage.
-# Optional. Bot token for sending admin messages via Telegram.
-# Required if SendAdminMessage is enabled.
-AdminBotToken: "ADMIN_BOT_TOKEN"
-
-# Опциональный. Идентификатор чата (Chat ID), в который будет отправляться сообщение администратору.
-# Обязательно, если включена опция SendAdminMessage.
-# Optional. Chat ID where the admin message will be sent.
-# Required if SendAdminMessage is enabled.
-AdminChatID: "ADMIN_CHAT_ID"
-
-# Опциональный. Указывает, отправлять ли сообщение пользователю при блокировке.
-# Если false или не задан, сообщения пользователю не будут отправляться.
-# Optional. Determines whether to send a user message upon blocking.
-# If set to false or not specified, no user messages will be sent.
-SendUserMessage: false
-
-# Опциональный. Токен бота для отправки сообщений пользователям через Telegram.
-# Обязательно, если включена опция SendUserMessage.
-# Optional. Bot token for sending user messages via Telegram.
-# Required if SendUserMessage is enabled.
-BotToken: "BOT_TOKEN"
-
-# Опциональный. Регулярное выражение для извлечения идентификатора пользователя (Telegram chat ID) из строки лога.
-# Обязательно, если включена опция SendUserMessage.
-# Optional. Regular expression to extract user identifier (Telegram chat ID) from the log entry.
-# Required if SendUserMessage is enabled.
-TidRegex: "tgid-(\\d+)"
-
-# Опциональный. Шаблон сообщения для пользователя.
-# Если не задано, будет использоваться сообщение по умолчанию. Можно использовать \n для переноса строки.
-# Optional. Template for the user message.
-# If not specified, a default message will be used. You can use \n for line breaks.
-UserMessageTemplate: ""
-
 # Опциональный. Регулярное выражение для извлечения имени пользователя из строки лога.
-# Если не задано, используется значение по умолчанию: "email: \\d+\\.(\\S+)". Можно оттюнить вывод имени пользователя.
+# Если не задано, используется значение по умолчанию: "email: (\\S+)". Можно оттюнить вывод имени пользователя.
 # Optional. Regular expression to extract the username from the log entry.
-# If not specified, the default value is used: "email: \\d+\\.(\\S+)". You can tweak the username extraction.
-UsernameRegex: "email: \\d+\\.(\\S+)"
+# If not specified, the default value is used: "email: (\\S+)". You can tweak the username extraction.
+UsernameRegex: "email: (\\S+)"
 
 # Опционально. Отправлять ли уведомления через вебхук
 # Optional. Whether to send webhook notifications

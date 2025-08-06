@@ -3,187 +3,289 @@
 [![en](https://img.shields.io/badge/lang-en-red)](https://github.com/kutovoys/xray-torrent-blocker/blob/main/README.md)
 [![ru](https://img.shields.io/badge/lang-ru-blue)](https://github.com/kutovoys/xray-torrent-blocker/blob/main/README.ru.md)
 
-Xray Torrent Blocker is an application designed to block torrent usage by users of the [Xray-based](https://github.com/XTLS/Xray-core) panels. The application analyzes logs, detects torrent activity, and temporarily blocks the user, sending notifications to the administrator via Telegram, and optionally to the user.
+Xray Torrent Blocker is an application designed to block torrent usage by users of the [Xray-based](https://github.com/XTLS/Xray-core) panels. The application analyzes logs, detects torrent activity, and temporarily blocks the user, sending webhooks to the configured webhook URL.
 
-## Features:
+## Features
 
-- Monitoring logs of nodes and the panel for torrent usage.
-- IP address blocking at the system level. Maximum block speed (no abuse reports!).
-- Sending notifications via Telegram to both the administrator and the user.
-- Configurable through a configuration file.
-- Uses UFW for blocking.
-- Configurable block duration.
-- Supports temporary blocking with automatic unblocking.
-- Simple installation and setup via systemd.
-- Persistent block state between application restarts.
-- Automatic block restoration after system reboot.
-- Automatic cleanup of expired blocks.
-- Supports webhook.
+- Monitoring logs of nodes and the panel for torrent usage
+- IP address blocking at the system level with maximum block speed (no abuse reports!)
+- Connection termination via conntrack - instantly break existing torrent connections
+- Sending webhooks to the configured webhook URL
+- Configurable through a configuration file
+- Supports various firewalls for blocking (iptables, nftables)
+- Configurable block duration
+- Supports temporary blocking with automatic unblocking
+- Install with apt or yum package managers
+- Persistent block state between application restarts
+- Automatic block restoration after system reboot
+- Automatic cleanup of expired blocks
 
-## Preparation
+## Requirements
 
-### Xray Configuration
-
-- Enable logging. Section `log`
-  ```json
-    "log": {
-      "access": "/var/lib/marzban-node/access.log",
-      "error": "/var/lib/marzban-node/error.log",
-      "loglevel": "error",
-      "dnsLog": false
-    },
-  ```
-- Configure bittorrent traffic tagging. Section `routing`. Add the rule:
-
-  ```json
-        {
-          "protocol": [
-            "bittorrent"
-          ],
-          "outboundTag": "TORRENT",
-          "type": "field"
-        },
-  ```
-
-  Here, `TORRENT` is the tag that the application will use to filter logs.
-
-- Configure bittorrent traffic blocking. Section `outbounds`. Send all traffic to blackhole:
-  ```json
-      {
-        "protocol": "blackhole",
-        "tag": "TORRENT"
-      },
-  ```
-  Unfortunately, this blocking only effectively handles about 20% of bittorrent traffic.
-
-### Marzban Configuration
-
-- On the server where the panel is hosted, create the folder `/var/lib/marzban-node`:
-
-  ```bash
-  mkdir -p /var/lib/marzban-node
-  ```
-
-- Add a new volume to the `/opt/marzban/docker-compose.yml` file:
-
-  ```yaml
-  volumes:
-    - /var/lib/marzban:/var/lib/marzban
-    - /var/lib/marzban-node:/var/lib/marzban-node #new volume
-  ```
-
-- Restart the panel with the following command:
-  ```bash
-  docker compose down --remove-orphans; docker compose up -d
-  ```
-
-### Node Configuration
-
-Ensure that the volume is correctly mounted in `docker-compose.yml`:
-
-```yaml
-volumes:
-  - /var/lib/marzban-node:/var/lib/marzban-node
-```
-
-By default, this volume is present, ensuring logs are accessible on the host.
+- Firewall (iptables or nftables)
+- Xray log file with enabled logging
+- conntrack (installed automatically when using quick install script or package)
 
 ## Installation
 
-To automatically install the application, follow these steps:
+### Quick Install Script
 
-- Run the installation script:
-  ```bash
-  bash <(curl -fsSL git.new/install)
-  ```
-- The script will automatically install all dependencies, download the latest release, ask for the admin `Token` and `Chat ID`, and start the service.
-- After installation, you can control the application via systemd:
-  ```bash
-  systemctl start/status/stop tblocker
-  ```
-
-### Logrotate Configuration for Marzban Node
-
-The configuration below is necessary to prevent your system from being clogged by logs.
+The easiest way to install Xray Torrent Blocker is using the installation script:
 
 ```bash
-/var/lib/marzban-node/*.log {
-    size 50M
-    rotate 5
-    compress
-    missingok
-    notifempty
-    copytruncate
-}
+bash <(curl -fsSL git.new/install)
 ```
 
-You can install logrotate and apply this configuration with the following command:
+This script will automatically:
+
+- Detect your system architecture
+- Download the latest release
+- Install the binary to `/opt/tblocker/`
+- Create a default configuration file
+- Set up the systemd service
+- Start the service
+
+During installation, you will be prompted to enter the path to your log file and select your preferred firewall (iptables, or nftables). Other configuration parameters can be adjusted manually by editing `/opt/tblocker/config.yaml` if needed.
+
+### From Package Repository
+
+After installation from the repository, a default configuration will be created at `/opt/tblocker/config.yaml`.
+
+For basic operation, you only need to change `LogFile` to point to your xray logs path.
+
+A systemd service `tblocker.service` will also be created for automatic startup at system boot. Automatic startup will be enabled. You just need to start the service after editing the config:
 
 ```bash
-sudo apt update && sudo apt install logrotate && sudo bash -c 'cat > /etc/logrotate.d/marzban-node <<EOF
-/var/lib/marzban-node/*.log {
-    size 50M
-    rotate 5
-    compress
-    missingok
-    notifempty
-    copytruncate
-}
-EOF' && logrotate -vf /etc/logrotate.d/marzban-node
+systemctl start tblocker
 ```
+
+#### Debian/Ubuntu Based Systems
+
+```bash
+apt update && apt install -y curl gnupg
+curl https://repo.remna.dev/xray-tools/public.gpg | gpg --yes --dearmor -o /usr/share/keyrings/openrepo-xray-tools.gpg
+echo "deb [arch=any signed-by=/usr/share/keyrings/openrepo-xray-tools.gpg] https://repo.remna.dev/xray-tools/ stable main" > /etc/apt/sources.list.d/openrepo-xray-tools.list
+apt update
+apt install tblocker
+```
+
+#### RPM Based Systems
+
+```bash
+echo """
+[xray-tools-rpm]
+name=xray-tools-rpm
+baseurl=https://repo.remna.dev/xray-tools-rpm
+enabled=1
+repo_gpgcheck=1
+gpgkey=https://repo.remna.dev/xray-tools-rpm/public.gpg
+""" > /etc/yum.repos.d/xray-tools-rpm.repo
+yum update
+yum install tblocker
+```
+
+### From Releases Binary
+
+1. Install required dependencies:
+   ```bash
+   # For Debian/Ubuntu
+   sudo apt install conntrack
+   # For CentOS/RHEL
+   sudo yum install conntrack-tools
+   ```
+2. Download the latest release for your architecture from [GitHub Releases](https://github.com/kutovoys/xray-torrent-blocker/releases)
+3. Extract the binary and make it executable:
+   ```bash
+   chmod +x tblocker
+   ```
+4. Move to system directory:
+   ```bash
+   sudo mv tblocker /opt/tblocker/
+   ```
+5. Create config file `/opt/tblocker/config.yaml` with your settings
+6. Copy [systemd service file](tblocker.service) to `/etc/systemd/system/tblocker.service` and start the service
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable tblocker
+   sudo systemctl start tblocker
+   ```
 
 ## Configuration
 
-After installation, you can configure the application's behavior via the configuration file located at: `/opt/tblocker/config.yaml`.
+### Default Configuration
 
-Key configuration parameters:
+After installation, the application uses default configuration. You can customize it by editing `/opt/tblocker/config.yaml`:
 
-- **LogFile** — the path to the log file to be monitored. Default: `/var/lib/marzban-node/access.log`
-- **BlockDuration** — the duration of the user's block in minutes. Default: `10`
-- **TorrentTag** — the tag used to identify log entries related to torrents. Default: `TORRENT`
-- **BlockMode** — specifies which tool to use for IP address blocking. Optional. Default: `ufw`
-- **BypassIPS** — specifies the IP addresses that will not be blocked. Optional. Default: `127.0.0.1, ::1`
-- **SendAdminMessage** — whether to send notifications to the administrator. Optional. Default: `true`
-- **AdminBotToken** — the admin bot token for notifications. Optional.
-- **AdminChatID** — the admin chat (or user) ID to which notifications will be sent. Optional.
-- **SendUserMessage** — whether to send notifications to the user. Optional. Default: `false`
-- **BotToken** — the bot token for sending messages to the user via Telegram. Optional.
-- **TidRegex** — regular expression to extract the user's `CHAT_ID` from the log entry. Optional.
-- **UserMessageTemplate** — the message template for notifying the user. Optional.
-- **UsernameRegex** — regular expression to extract the user's login from the log entry. Optional.
-- **SendWebhook** — enables webhooks. Optional. Default: `false`
-- **WebhookURL** — the URL to which webhooks will be sent. Optional.
-- **WebhookTemplate** - JSON template for webhook. Optional.
-- **StorageDir** — path to the directory for storing block data. Default: `/opt/tblocker`
-- **WebhookHeaders** — A set of additional HTTP headers added to webhooks. Optional.
+```yaml
+# Log file to monitor
+LogFile: "/var/log/remnanode/access.log"
 
-An example configuration file with detailed comments is available at `/opt/tblocker/config.yaml.example`.
+# Block duration in minutes
+BlockDuration: 10
 
-### Example for Sending Notifications to Users:
+# Tag used to identify torrent traffic in logs
+TorrentTag: "TORRENT"
 
-If the user's `CHAT_ID` is included in their login on the Marzban panel, you can configure the application to send notifications directly to the user.
+# Firewall to use for blocking (iptables, nft)
+BlockMode: "iptables"
+```
 
-For example, if the user's login in Marzban looks like this: `kutovoys_tgid-1234111`, you can set up the following in `config.yaml`:
+### Advanced Configuration
 
-- **TidRegex**: `tgid-(\\d+)`
-- **UsernameRegex**: `email: \\d+\\.(\\w+)_tgid-`
+For advanced usage, you can configure additional features:
 
-In this case, the administrator will receive notifications with the username `kutovoys`, and the user will also be notified directly via Telegram when they are blocked.
+```yaml
+# IP addresses to bypass blocking
+BypassIPS:
+  - "127.0.0.1"
+  - "::1"
 
-### Block Data Storage
+# Storage directory for block data
+StorageDir: "/opt/tblocker"
 
-The application stores block information in a JSON file in the directory specified by the `StorageDir` parameter. This ensures:
+# Username extraction regex
+UsernameRegex: "email: (\\S+)"
 
-- Persistent block state between application restarts
-- Automatic block restoration after system reboot
-- Proper user unblocking even after application restart
-- Automatic cleanup of expired blocks
+# Webhook configuration
+SendWebhook: false
+WebhookURL: "https://your-webhook-url.com/endpoint"
+WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","duration":%d,"timestamp":"%s"}'
+WebhookHeaders:
+  Authorization: "Bearer your-token"
+  Content-Type: "application/json"
+```
 
-The block data file is located at: `/opt/tblocker/blocked_ips.json`
+## Panels Configuration
+
+### For all panels
+
+1. Configure bittorrent traffic tagging. Section `routing`. Add the rule:
+
+   ```json
+   {
+     "protocol": ["bittorrent"],
+     "outboundTag": "TORRENT",
+     "type": "field"
+   }
+   ```
+
+   Here, `TORRENT` is the tag that the application will use to filter logs.
+
+2. Configure bittorrent traffic blocking. Section `outbounds`. Send all traffic to blackhole:
+
+   ```json
+   {
+     "protocol": "blackhole",
+     "tag": "TORRENT"
+   }
+   ```
+
+### Remnawave
+
+1. Create the log directory:
+
+   ```bash
+   mkdir -p /var/log/remnanode
+   ```
+
+2. Add volume to remnanode's `docker-compose.yml`:
+
+   ```yaml
+   volumes:
+     - "/var/log/remnanode:/var/log/remnanode"
+   ```
+
+3. Setup logging in xray config:
+
+   ```json
+   "log": {
+       "error": "/var/log/remnanode/error.log",
+       "access": "/var/log/remnanode/access.log",
+       "loglevel": "error"
+   }
+   ```
+
+4. Restart the remnanode.
+
+### Marzban
+
+1. Create the log directory:
+
+   ```bash
+   mkdir -p /var/lib/marzban-node
+   ```
+
+2. Add volume to marzban-node's `docker-compose.yml`:
+
+   ```yaml
+   volumes:
+     - /var/lib/marzban-node:/var/lib/marzban-node
+   ```
+
+3. Setup logging in xray config:
+
+   ```json
+   "log": {
+       "error": "/var/lib/marzban-node/error.log",
+       "access": "/var/lib/marzban-node/access.log",
+       "loglevel": "error"
+   }
+   ```
+
+4. Set UsernameRegex value in config.yaml:
+   ```yaml
+   UsernameRegex: "email: \\d+\\.(\\S+)"
+   ```
+5. Restart the marzban-node.
+
+### Other Panels
+
+For other Xray-based panels, ensure that:
+
+1. Log files are accessible on the host system
+2. Log format includes necessary information (IP, user identification)
+3. Bittorrent traffic is properly tagged in routing rules
+
+## Tips
+
+### Logrotate Configuration
+
+To prevent log files from consuming too much disk space, configure logrotate:
+
+```bash
+sudo bash -c 'cat > /etc/logrotate.d/remnanode <<EOF
+/var/log/remnanode/*.log {
+    size 50M
+    rotate 5
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+EOF'
+```
+
+### Working with Webhooks
+
+Webhooks allow you to integrate tblocker with external systems:
+
+- **Panel**: Enable/Disable user in Panel for blocking on all nodes
+- **Telegram**: Send notifications to Telegram groups. For admin and user notifications.
+- **Custom APIs**: Connect to your own monitoring systems
+
+For receiving webhooks, you can use [n8n](https://n8n.io/) or any other webhook service.
 
 ## Contributing
 
-We welcome contributions from the community! If you have ideas for improvements or have found a bug, please create an issue or submit a pull request on GitHub.
+We welcome contributions from the community! If you have ideas for improvements or have found a bug, please:
+
+1. Create an issue on GitHub
+2. Fork the repository
+3. Create a feature branch
+4. Make your changes
+5. Submit a pull request
+
+For major changes, please open an issue first to discuss what you would like to change.
 
 ## VPN Recommendation
 

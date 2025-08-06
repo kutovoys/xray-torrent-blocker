@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
-	"os/exec"
 	"strings"
 	"tblocker/config"
+	"tblocker/firewall"
 	"tblocker/storage"
 	"time"
 
@@ -15,9 +14,14 @@ import (
 )
 
 var ipStorage *storage.IPStorage
+var firewallManager *firewall.Manager
 
 func SetIPStorage(storage *storage.IPStorage) {
 	ipStorage = storage
+}
+
+func SetFirewallManager(manager *firewall.Manager) {
+	firewallManager = manager
 }
 
 func StartLogMonitor() {
@@ -40,12 +44,7 @@ func StartLogMonitor() {
 
 func handleLogEntry(line string) {
 	ip := config.IpRegex.FindString(line)
-	var tid []string
 	var username []string
-
-	if config.TidRegex != nil {
-		tid = config.TidRegex.FindStringSubmatch(line)
-	}
 
 	if config.UsernameRegex != nil {
 		username = config.UsernameRegex.FindStringSubmatch(line)
@@ -57,8 +56,6 @@ func handleLogEntry(line string) {
 	}
 
 	if IsBypassedIP(ip) {
-		// log.Printf("IP %s is in the bypass list. Skipping...\n", ip)
-		// printing removed due to large amount of log strings
 		return
 	}
 
@@ -71,15 +68,6 @@ func handleLogEntry(line string) {
 		log.Printf("Error saving blocked IP to storage: %v", err)
 	}
 
-	if config.SendUserMessage && len(tid) >= 2 {
-		go SendTelegramMessage(tid[1], config.Message, config.BotToken, "HTML", true)
-	}
-
-	if config.SendAdminMessage {
-		adminMsg := fmt.Sprintf(config.AdminBlockTemplate, username[1], ip, config.Hostname, username[1])
-		go SendTelegramMessage(config.AdminChatID, adminMsg, config.AdminBotToken, "HTML", true)
-	}
-
 	go BlockIP(ip)
 	log.Printf("User %s with IP: %s blocked for %d minutes\n", username[1], ip, config.BlockDuration)
 
@@ -87,7 +75,6 @@ func handleLogEntry(line string) {
 		go SendWebhook(username[1], ip, "block")
 	}
 
-	go UnblockIPAfterDelay(ip, time.Duration(config.BlockDuration)*time.Minute, username[1])
 }
 
 func ScheduleBlockedIPsUpdate() {
@@ -100,58 +87,24 @@ func ScheduleBlockedIPsUpdate() {
 }
 
 func UpdateBlockedIPs() {
-	cmd := exec.Command("ufw", "status")
-	output, err := cmd.Output()
-	if err != nil {
-		log.Printf("Error checking ufw status: %v", err)
+	if firewallManager == nil {
+		log.Printf("Firewall manager not initialized")
 		return
 	}
 
-	currentBlockedIPs := make(map[string]bool)
-	for _, line := range strings.Split(string(output), "\n") {
-		ip := config.IpRegex.FindString(line)
-		if ip != "" {
-			currentBlockedIPs[ip] = true
-		}
+	currentBlockedIPs, err := firewallManager.GetBlockedIPs()
+	if err != nil {
+		log.Printf("Error checking firewall status: %v", err)
+		return
 	}
 
 	blockedInStorage := ipStorage.GetBlockedIPs()
 
 	for ip, info := range blockedInStorage {
 		if time.Now().Before(info.BlockedUntil) && !currentBlockedIPs[ip] {
+			log.Printf("Restoring block for IP: %s (user: %s) using %s", ip, info.Username, firewallManager.GetFirewallName())
 			go BlockIP(ip)
-			log.Printf("Restoring block for IP: %s (user: %s)\n", ip, info.Username)
 		}
-	}
-}
-
-func SendTelegramMessage(chatID string, message string, botToken string, parseMode string, disablePreview bool) {
-	urlStr := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", botToken)
-	data := url.Values{}
-	data.Set("chat_id", chatID)
-	data.Set("text", message)
-	data.Set("parse_mode", parseMode)
-	if disablePreview {
-		data.Set("disable_web_page_preview", "true")
-	}
-
-	req, err := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode()))
-	if err != nil {
-		log.Printf("Error creating HTTP request: %v", err)
-		return
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Error sending HTTP request: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Unexpected status code: %d", resp.StatusCode)
 	}
 }
 
@@ -161,18 +114,21 @@ func IsBypassedIP(ip string) bool {
 }
 
 func BlockIP(ip string) {
-	var cmd *exec.Cmd
-
-	if config.BlockMode == "iptables" {
-		cmd = exec.Command("iptables", "-I", "INPUT", "-s", ip, "-j", "DROP")
-	} else {
-		cmd = exec.Command("ufw", "insert", "1", "deny", "from", ip, "to", "any")
+	if firewallManager == nil {
+		log.Printf("Firewall manager not initialized")
+		return
 	}
 
-	err := cmd.Run()
+	err := firewallManager.BlockIP(ip)
 	if err != nil {
-		log.Printf("Error blocking IP: %v", err)
+		log.Printf("Error blocking IP %s: %v", ip, err)
 		return
+	}
+
+	if conntrackManager != nil && conntrackManager.IsAvailable() {
+		if err := conntrackManager.DropConnections(ip); err != nil {
+			log.Printf("Warning: failed to drop connections for IP %s: %v", ip, err)
+		}
 	}
 }
 
@@ -184,18 +140,25 @@ func UnblockIPAfterDelay(ip string, delay time.Duration, username string) {
 		return
 	}
 
-	var cmd *exec.Cmd
-
-	if config.BlockMode == "iptables" {
-		cmd = exec.Command("iptables", "-D", "INPUT", "-s", ip, "-j", "DROP")
-	} else {
-		cmd = exec.Command("ufw", "delete", "deny", "from", ip, "to", "any")
+	if firewallManager == nil {
+		log.Printf("Firewall manager not initialized")
+		return
 	}
 
-	err := cmd.Run()
-	if err != nil {
-		log.Printf("Error unblocking IP: %v", err)
+	blockedIPs := ipStorage.GetBlockedIPs()
+	if _, exists := blockedIPs[ip]; !exists {
+		log.Printf("IP %s not found in storage, skipping unblock", ip)
 		return
+	}
+
+	err := firewallManager.UnblockIP(ip)
+	if err != nil {
+		if strings.Contains(err.Error(), "no rule found") || strings.Contains(err.Error(), "exit status 1") {
+			log.Printf("IP %s already unblocked or rule not found, continuing...", ip)
+		} else {
+			log.Printf("Error unblocking IP %s: %v", ip, err)
+			return
+		}
 	}
 
 	if err := ipStorage.RemoveBlockedIP(ip); err != nil {
@@ -206,11 +169,6 @@ func UnblockIPAfterDelay(ip string, delay time.Duration, username string) {
 
 	if config.SendWebhook {
 		go SendWebhook(username, ip, "unblock")
-	}
-
-	if config.SendAdminMessage {
-		adminMsg := fmt.Sprintf(config.AdminUnblockTemplate, username, ip, config.Hostname, username)
-		go SendTelegramMessage(config.AdminChatID, adminMsg, config.AdminBotToken, "HTML", true)
 	}
 }
 

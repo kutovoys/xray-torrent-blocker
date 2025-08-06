@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"tblocker/config"
+	"tblocker/firewall"
 	"tblocker/storage"
 	"tblocker/utils"
 )
@@ -14,10 +15,12 @@ import (
 var Version string
 
 func main() {
-	initConfig()
-
 	log.Printf("XRay torrent-blocker: %s", Version)
 	log.Printf("Service started on %s", config.Hostname)
+
+	initConfig()
+
+	utils.InitConntrackManager()
 
 	utils.StartLogMonitor()
 }
@@ -46,6 +49,13 @@ func initConfig() {
 	if err := config.LoadConfig(configPath); err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	firewallManager, err := firewall.NewManager(config.BlockMode)
+	if err != nil {
+		log.Fatalf("Failed to initialize firewall manager: %v", err)
+	}
+	log.Printf("Using firewall: %s", firewallManager.GetFirewallName())
+	utils.SetFirewallManager(firewallManager)
 
 	store, err := storage.NewIPStorage(config.StorageDir, utils.UnblockIPAfterDelay)
 	if err != nil {

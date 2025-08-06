@@ -26,16 +26,44 @@ builds:
 
 archives:
   - id: torrent-blocker
-    format: tar.gz
+    formats: [tar.gz]
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
-      - config.yaml.example
+      - config.yaml.default
 
 release:
   github:
     owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
     name: "{{ .Env.GITHUB_REPOSITORY_NAME }}"
   name_template: "v{{ .Version }}"
+
+nfpms:
+  - id: tblocker
+    package_name: tblocker
+    maintainer: Sergey Kutov <sergey@kutovoy.dev>
+    description: Xray Torrent Blocker
+    homepage: https://github.com/kutovoys/xray-torrent-blocker
+    license: AGPL-3.0
+    dependencies:
+      - conntrack
+    formats: [deb, rpm]
+    bindir: /opt/tblocker
+    contents:
+      - src: config.yaml.default
+        dst: /opt/tblocker/config.yaml
+        type: config|noreplace
+      - src: tblocker.service
+        dst: /etc/systemd/system/tblocker.service
+        type: config
+    scripts:
+      postinstall: ./scripts/postinstall.sh
+      preremove: ./scripts/preremove.sh
+      postremove: ./scripts/postremove.sh
+
+    overrides:
+      rpm:
+        dependencies:
+          - conntrack-tools
 
 changelog:
   sort: asc

@@ -1,2 +1,5 @@
 build
 config.yaml
+.secrets
+.github/workflows/test.yaml
+dist/

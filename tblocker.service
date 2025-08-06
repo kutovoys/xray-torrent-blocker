@@ -1,5 +1,6 @@
 [Unit]
 Description=XRay Torrent Blocker Service
+Documentation=https://github.com/kutovoys/xray-torrent-blocker
 After=network.target
 
 [Service]

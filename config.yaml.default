@@ -1,0 +1,8 @@
+LogFile: "/var/log/remnanode/access.log"
+BlockDuration: 10
+TorrentTag: "TORRENT"
+BlockMode: "iptables"
+#
+# For additional parameters (webhooks, whitelist, etc.) - check docs: https://github.com/kutovoys/xray-torrent-blocker
+# Для дополнительных параметров (вебхуки, белый список и т.д.) - смотрите документацию: https://github.com/kutovoys/xray-torrent-blocker
+
