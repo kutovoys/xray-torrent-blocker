@@ -7,6 +7,7 @@ import (
 )
 
 type Firewall interface {
+	Initialize() error
 	BlockIP(ip string) error
 	UnblockIP(ip string) error
 
@@ -49,6 +50,11 @@ func NewManager(blockMode string) (*Manager, error) {
 				break
 			}
 		}
+	}
+
+	if err := firewall.Initialize(); err != nil {
+		log.Printf("Error initializing firewall: %v", err)
+		return nil, err
 	}
 
 	return &Manager{firewall: firewall}, nil

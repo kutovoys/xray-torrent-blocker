@@ -2,14 +2,12 @@
 
 set -e
 
-# Цвета для вывода
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Функция для вывода цветного текста
 print_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -26,13 +24,11 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Проверка root прав
 if [ "$EUID" -ne 0 ]; then
   print_error "Please run the script with root privileges (sudo)."
   exit 1
 fi
 
-# Определение архитектуры
 ARCH=""
 if [ "$(uname -m)" == "x86_64" ]; then
   ARCH="amd64"
@@ -43,7 +39,6 @@ else
   exit 1
 fi
 
-# Определение дистрибутива и пакетного менеджера
 DISTRO=""
 PKG_MANAGER=""
 INSTALL_FROM_PACKAGE=false
@@ -71,13 +66,11 @@ fi
 
 print_info "Detected distribution: $DISTRO ($PKG_MANAGER)"
 
-# Остановка существующего сервиса
 if systemctl is-active --quiet tblocker; then
   print_info "Stopping existing tblocker service..."
   systemctl stop tblocker
 fi
 
-# Установка из пакетов
 if [ "$INSTALL_FROM_PACKAGE" = true ]; then
     print_info "Installing from package repository..."
     
@@ -115,34 +108,31 @@ gpgkey=https://repo.remna.dev/xray-tools-rpm/public.gpg
     fi
 fi
 
-# Установка из релизов
 if [ "$INSTALL_FROM_PACKAGE" = false ]; then
     print_info "Installing from GitHub releases..."
     
-    # Установка зависимостей
-    print_info "Installing necessary dependencies..."
+    print_info "Installing minimal dependencies (only curl for downloading)..."
     case $PKG_MANAGER in
         "apt-get")
             apt-get update -qq
-            apt-get install -y curl conntrack-tools > /dev/null
+            apt-get install -y curl > /dev/null
             ;;
         "yum"|"dnf")
             if [ "$PKG_MANAGER" = "yum" ]; then
                 yum install -y epel-release > /dev/null
-                yum install -y curl conntrack-tools > /dev/null
+                yum install -y curl > /dev/null
             else
-                dnf install -y curl conntrack-tools > /dev/null
+                dnf install -y curl > /dev/null
             fi
             ;;
         "pacman")
-            pacman -Sy --noconfirm curl conntrack-tools > /dev/null
+            pacman -Sy --noconfirm curl > /dev/null
             ;;
         *)
             print_warning "Please install curl manually if not already installed."
             ;;
     esac
     
-    # Загрузка последней версии
     print_info "Downloading the latest version of tblocker..."
     LATEST_RELEASE=$(curl -s https://api.github.com/repos/kutovoys/xray-torrent-blocker/releases/latest | grep tag_name | cut -d '"' -f 4)
     URL="https://github.com/kutovoys/xray-torrent-blocker/releases/download/${LATEST_RELEASE}/xray-torrent-blocker-${LATEST_RELEASE}-linux-${ARCH}.tar.gz"
@@ -154,7 +144,6 @@ if [ "$INSTALL_FROM_PACKAGE" = false ]; then
         exit 1
     fi
     
-    # Распаковка
     print_info "Extracting files..."
     mkdir -p /opt/tblocker
     tar -xzf tblocker.tar.gz -C /opt/tblocker --overwrite
@@ -164,12 +153,8 @@ if [ "$INSTALL_FROM_PACKAGE" = false ]; then
     CONFIG_PATH="/opt/tblocker/config.yaml"
     CONFIG_TEMPLATE_PATH="/opt/tblocker/config.yaml.default"
     
-    print_info "Loading nf_conntrack kernel module..."
-    modprobe nf_conntrack || true
-    echo 'nf_conntrack' > /etc/modules-load.d/conntrack.conf
-    print_success "nf_conntrack kernel module loaded"
+    print_info "Kernel module nf_conntrack will be loaded automatically by tblocker on first run"
 
-    # Копирование конфига
     if [ ! -f "$CONFIG_PATH" ]; then
         cp "$CONFIG_TEMPLATE_PATH" "$CONFIG_PATH"
         print_info "New configuration file created at $CONFIG_PATH"
@@ -177,17 +162,14 @@ if [ "$INSTALL_FROM_PACKAGE" = false ]; then
         print_info "Configuration file already exists at $CONFIG_PATH"
     fi
     
-    # Копирование systemd сервиса
     print_info "Setting up systemd service..."
     curl -sL https://raw.githubusercontent.com/kutovoys/xray-torrent-blocker/main/tblocker.service -o /etc/systemd/system/tblocker.service
 fi
 
-# Запрос пути к файлу логов
 print_info "Configuration setup..."
 echo ""
 read -p "Enter the path to the log file to monitor: " log_file_path
 
-# Проверка существования файла логов
 if [ ! -f "$log_file_path" ]; then
     print_warning "Log file does not exist: $log_file_path"
     read -p "Do you want to create it? (y/N): " create_log_file
@@ -198,7 +180,6 @@ if [ ! -f "$log_file_path" ]; then
     fi
 fi
 
-# Выбор файрвола
 echo ""
 print_info "Available firewalls:"
 echo "1) iptables (Linux netfilter)"
@@ -214,7 +195,6 @@ while true; do
     esac
 done
 
-# Проверка и установка выбранного файрвола
 print_info "Checking firewall availability..."
 case $FIREWALL in
     "iptables")
@@ -259,7 +239,6 @@ case $FIREWALL in
         ;;
 esac
 
-# Обновление конфигурации
 print_info "Updating configuration..."
 sed -i "s|LogFile: \".*\"|LogFile: \"$log_file_path\"|" "$CONFIG_PATH"
 sed -i "s|BlockMode: \".*\"|BlockMode: \"$FIREWALL\"|" "$CONFIG_PATH"
@@ -268,13 +247,11 @@ print_success "Configuration updated:"
 print_info "  Log file: $log_file_path"
 print_info "  Firewall: $FIREWALL"
 
-# Запуск сервиса
 print_info "Starting tblocker service..."
 systemctl daemon-reload
 systemctl enable tblocker
 systemctl start tblocker
 
-# Проверка статуса
 if systemctl is-active --quiet tblocker; then
     print_success "tblocker service is running successfully!"
 else

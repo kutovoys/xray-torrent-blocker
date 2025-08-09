@@ -16,7 +16,6 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
     goarch:
       - amd64
       - arm64
@@ -44,8 +43,6 @@ nfpms:
     description: Xray Torrent Blocker
     homepage: https://github.com/kutovoys/xray-torrent-blocker
     license: AGPL-3.0
-    dependencies:
-      - conntrack
     formats: [deb, rpm]
     bindir: /opt/tblocker
     contents:
@@ -59,11 +56,6 @@ nfpms:
       postinstall: ./scripts/postinstall.sh
       preremove: ./scripts/preremove.sh
       postremove: ./scripts/postremove.sh
-
-    overrides:
-      rpm:
-        dependencies:
-          - conntrack-tools
 
 changelog:
   sort: asc

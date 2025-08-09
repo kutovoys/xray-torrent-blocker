@@ -24,7 +24,6 @@ Xray Torrent Blocker — это приложение для блокировки
 
 - Файрвол (iptables или nftables)
 - Файл логов Xray с включенным логированием
-- conntrack (устанавливается автоматически при использовании скрипта быстрой установки или пакета)
 
 ## Установка
 
@@ -249,6 +248,52 @@ WebhookHeaders:
 3. Bittorrent трафик правильно помечен в правилах маршрутизации
 
 ## Советы
+
+### Работа за TCP прокси
+
+⚠️ **Важно**: Если вы размещаете Nginx/HAProxy/другой TCP прокси перед Xray, убедитесь, что реальный IP клиента передается в Xray через протокол PROXY; иначе вы можете заблокировать 127.0.0.1 или IP вашего сервера вместо реального нарушителя.
+
+**Пример конфигурации Xray:**
+
+```json
+{
+  "inbounds": [
+    {
+      "port": 444,
+      "protocol": "vless",
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "sockopt": {
+          "acceptProxyProtocol": true // принимать PROXY v1/v2 от прокси
+        }
+      }
+    }
+  ]
+}
+```
+
+**Пример конфигурации Nginx:**
+
+```nginx
+stream {
+    server {
+        listen 443;
+        proxy_pass 127.0.0.1:444;  # ваш inbound Xray
+        proxy_protocol on;         # отправлять PROXY protocol в backend
+    }
+}
+```
+
+**Пример конфигурации HAProxy:**
+
+```
+backend xray_backend
+    mode tcp
+    server xray1 127.0.0.1:444 send-proxy-v2
+```
+
+Это гарантирует, что Xray получает реальный IP-адрес клиента в своих логах доступа, позволяя tblocker блокировать правильные IP-адреса.
 
 ### Чтение логов
 

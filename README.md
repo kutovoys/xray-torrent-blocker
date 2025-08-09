@@ -24,7 +24,6 @@ Xray Torrent Blocker is an application designed to block torrent usage by users 
 
 - Firewall (iptables or nftables)
 - Xray log file with enabled logging
-- conntrack (installed automatically when using quick install script or package)
 
 ## Installation
 
@@ -247,6 +246,52 @@ For other Xray-based panels, ensure that:
 3. Bittorrent traffic is properly tagged in routing rules
 
 ## Tips
+
+### Working Behind a TCP Proxy
+
+⚠️ **Important**: If you place Nginx/HAProxy/another TCP proxy in front of Xray, make sure the real client IP reaches Xray via the PROXY protocol; otherwise, you may end up blocking 127.0.0.1 or your server IP instead of the actual offender.
+
+**Xray Configuration Example:**
+
+```json
+{
+  "inbounds": [
+    {
+      "port": 444,
+      "protocol": "vless",
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "sockopt": {
+          "acceptProxyProtocol": true // accept PROXY v1/v2 from the proxy
+        }
+      }
+    }
+  ]
+}
+```
+
+**Nginx Configuration Example:**
+
+```nginx
+stream {
+    server {
+        listen 443;
+        proxy_pass 127.0.0.1:444;  # your Xray inbound
+        proxy_protocol on;         # send PROXY protocol to backend
+    }
+}
+```
+
+**HAProxy Configuration Example:**
+
+```
+backend xray_backend
+    mode tcp
+    server xray1 127.0.0.1:444 send-proxy-v2
+```
+
+This ensures that Xray receives the real client IP address in its access logs, allowing tblocker to block the correct IP addresses.
 
 ### Reading logs
 

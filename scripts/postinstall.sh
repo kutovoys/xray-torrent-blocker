@@ -16,9 +16,6 @@ chmod 644 /opt/tblocker/config.yaml
 
 systemctl daemon-reload
 
-modprobe nf_conntrack || true
-echo 'nf_conntrack' > /etc/modules-load.d/conntrack.conf
-
 systemctl enable tblocker.service
 echo "✓ XRay Torrent Blocker service installed and enabled to start on boot"
 
