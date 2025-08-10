@@ -10,7 +10,7 @@ import (
 	"tblocker/storage"
 	"time"
 
-	"github.com/hpcloud/tail"
+	"github.com/nxadm/tail"
 )
 
 var ipStorage *storage.IPStorage
