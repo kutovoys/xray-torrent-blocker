@@ -15,10 +15,10 @@ import (
 var Version string
 
 func main() {
+	initConfig()
+
 	log.Printf("XRay torrent-blocker: %s", Version)
 	log.Printf("Service started on %s", config.Hostname)
-
-	initConfig()
 
 	utils.InitConntrackManager()
 
@@ -28,9 +28,11 @@ func main() {
 func initConfig() {
 	var configPath string
 	var showVersion bool
+	var enablePerf bool
 
 	flag.StringVar(&configPath, "c", "", "Path to the configuration file")
 	flag.BoolVar(&showVersion, "v", false, "Display version")
+	flag.BoolVar(&enablePerf, "perf", false, "Enable performance metrics collection")
 	flag.Parse()
 
 	if showVersion {
@@ -49,6 +51,8 @@ func initConfig() {
 	if err := config.LoadConfig(configPath); err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	config.EnablePerformanceMetrics = enablePerf
 
 	firewallManager, err := firewall.NewManager(config.BlockMode)
 	if err != nil {

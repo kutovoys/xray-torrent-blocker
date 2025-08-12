@@ -114,8 +114,6 @@ func (cm *ConntrackManager) DropConnections(ip string) error {
 }
 
 func (cm *ConntrackManager) dropConnectionsViaLibrary(ip net.IP) error {
-	dropped := 0
-
 	netipAddr, ok := netip.AddrFromSlice(ip)
 	if !ok {
 		return fmt.Errorf("failed to convert IP address: %s", ip.String())
@@ -149,13 +147,11 @@ func (cm *ConntrackManager) dropConnectionsViaLibrary(ip net.IP) error {
 			err := cm.conn.Delete(flow)
 			if err != nil {
 				log.Printf("Warning: failed to delete connection for IP %s: %v", ip.String(), err)
-			} else {
-				dropped++
 			}
 		}
 	}
 
-	log.Printf("Dropped %d connections for IP %s via conntrack library", dropped, ip.String())
+	log.Printf("Connections for IP %s have been dropped via conntrack library", ip.String())
 	return nil
 }
 

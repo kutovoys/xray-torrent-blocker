@@ -142,8 +142,8 @@ BypassIPS:
 # Storage directory for block data
 StorageDir: "/opt/tblocker"
 
-# Username extraction regex
-UsernameRegex: "email: (\\S+)"
+# Username processing regex for webhooks
+UsernameRegex: "^(.+)$"
 
 # Webhook configuration
 SendWebhook: false
@@ -232,9 +232,11 @@ WebhookHeaders:
    ```
 
 4. Set UsernameRegex value in config.yaml:
+
    ```yaml
-   UsernameRegex: "email: \\d+\\.(\\S+)"
+   UsernameRegex: "^\\d+\\.(.+)$"
    ```
+
 5. Restart the marzban-node.
 
 ### Other Panels

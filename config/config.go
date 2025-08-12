@@ -9,23 +9,24 @@ import (
 )
 
 var (
+	LogFile       string
+	BlockDuration int
+	TorrentTag    string
+	BlockMode     string
+	BypassIPSet   = make(map[string]struct{})
+	StorageDir    string
+
 	SendWebhook     bool
 	WebhookURL      string
 	WebhookTemplate string
 	WebhookHeaders  map[string]string
-	StorageDir      string
-)
 
-var (
-	LogFile              string
-	BlockDuration        int
-	TorrentTag           string
-	Hostname             string
-	IpRegex              = regexp.MustCompile(`(\d+\.\d+\.\d+\.\d+)`)
-	DefaultUsernameRegex = `email: (\S+)`
 	UsernameRegex        *regexp.Regexp
-	BlockMode            string
-	BypassIPSet          = make(map[string]struct{})
+	DefaultUsernameRegex = `^(.+)$`
+
+	Hostname string
+
+	EnablePerformanceMetrics bool
 )
 
 type Config struct {
@@ -67,7 +68,7 @@ func LoadConfig(configPath string) error {
 		UsernameRegex, err = regexp.Compile(DefaultUsernameRegex)
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid UsernameRegex pattern: %v", err)
 	}
 
 	Hostname, err = os.Hostname()

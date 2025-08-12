@@ -24,11 +24,23 @@ BypassIPS:
   - "127.0.0.1"
   - "::1"
 
-# Опциональный. Регулярное выражение для извлечения имени пользователя из строки лога.
-# Если не задано, используется значение по умолчанию: "email: (\\S+)". Можно оттюнить вывод имени пользователя.
-# Optional. Regular expression to extract the username from the log entry.
-# If not specified, the default value is used: "email: (\\S+)". You can tweak the username extraction.
-UsernameRegex: "email: (\\S+)"
+# Опциональный. Регулярное выражение для обработки имени пользователя для вебхуков.
+# Это regex применяется к имени пользователя, извлеченному из поля "email: ".
+# Regex должен иметь ОДНУ группу захвата () для извлечения нужной части.
+# Примеры:
+#   - Отбросить ID юзера в Mazrban: "^(\\d+)\\.(.+)$" -> "12345.username" становится "username"
+#   - Убрать префикс: "^prefix_(.+)" -> "prefix_username" становится "username"  
+#   - Извлечь Telegram ID: "_tgid-(\\d+)" -> "user_tgid-12345" становится "12345"
+#   - Оставить полное: "^(.+)$" (по умолчанию) -> оставляет полное имя без изменений
+# Optional. Regular expression to process username extracted from log entry.
+# This regex is applied to the username extracted from "email: " field.
+# The regex should have ONE capturing group () to extract the desired part.
+# Examples:
+#   - Remove user ID in Mazrban: "^(\\d+)\\.(.+)$" -> "12345.username" becomes "username"
+#   - Remove prefix: "^prefix_(.+)" -> "prefix_username" becomes "username"  
+#   - Extract Telegram ID: "_tgid-(\\d+)" -> "user_tgid-12345" becomes "12345"
+#   - Keep full: "^(.+)$" (default) -> keeps full username unchanged (by default)
+UsernameRegex: "^(.+)$"
 
 # Опционально. Отправлять ли уведомления через вебхук
 # Optional. Whether to send webhook notifications

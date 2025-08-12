@@ -4,22 +4,18 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"regexp"
-	"strings"
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
 )
 
 type NFTFirewall struct {
-	ipRegex     *regexp.Regexp
 	conn        *nftables.Conn
 	initialized bool
 }
 
 func NewNFTFirewall() *NFTFirewall {
 	return &NFTFirewall{
-		ipRegex:     regexp.MustCompile(`(\d+\.\d+\.\d+\.\d+|[0-9a-fA-F:]+:[0-9a-fA-F:]*[0-9a-fA-F]+)`),
 		conn:        &nftables.Conn{},
 		initialized: false,
 	}
@@ -56,32 +52,37 @@ func (f *NFTFirewall) Initialize() error {
 	}
 	f.conn.AddSet(set, []nftables.SetElement{})
 
-	rule := &nftables.Rule{
-		Table: table,
-		Chain: chain,
-		Exprs: []expr.Any{
-			&expr.Payload{
-				DestRegister: 1,
-				Base:         expr.PayloadBaseNetworkHeader,
-				Offset:       12, // IP source address offset
-				Len:          4,
+	if !f.ruleExists(table, chain) {
+		rule := &nftables.Rule{
+			Table: table,
+			Chain: chain,
+			Exprs: []expr.Any{
+				&expr.Payload{
+					DestRegister: 1,
+					Base:         expr.PayloadBaseNetworkHeader,
+					Offset:       12,
+					Len:          4,
+				},
+				&expr.Lookup{
+					SourceRegister: 1,
+					SetName:        set.Name,
+					SetID:          set.ID,
+				},
+				&expr.Verdict{
+					Kind: expr.VerdictDrop,
+				},
 			},
-			&expr.Lookup{
-				SourceRegister: 1,
-				SetName:        set.Name,
-				SetID:          set.ID,
-			},
-			&expr.Verdict{
-				Kind: expr.VerdictDrop,
-			},
-		},
+		}
+		f.conn.AddRule(rule)
+		log.Printf("Rule added to nftables")
+	} else {
+		log.Printf("Rule already exists in nftables")
 	}
-	f.conn.AddRule(rule)
 
 	err := f.conn.Flush()
 	if err != nil {
 		log.Printf("Error initializing nftables: %v", err)
-		return f.initializeViaCommand()
+		return fmt.Errorf("failed to initialize nftables: %v", err)
 	}
 
 	log.Printf("Nftables firewall initialized successfully")
@@ -89,32 +90,32 @@ func (f *NFTFirewall) Initialize() error {
 	return nil
 }
 
-func (f *NFTFirewall) initializeViaCommand() error {
-	log.Printf("Initializing nftables via commands...")
-
-	_, err := execCommand("nft", "add", "table", "inet", "tblocker")
+func (f *NFTFirewall) ruleExists(table *nftables.Table, chain *nftables.Chain) bool {
+	rules, err := f.conn.GetRules(table, chain)
 	if err != nil {
-		log.Printf("Warning: table might already exist: %v", err)
+		log.Printf("Error checking existing rules: %v", err)
+		return false
 	}
 
-	_, err = execCommand("nft", "add", "chain", "inet", "tblocker", "TBLOCKER_BLOCKED", "{", "type", "filter", "hook", "prerouting", "priority", "-100", ";", "policy", "accept", ";", "}")
-	if err != nil {
-		log.Printf("Warning: chain might already exist: %v", err)
+	for _, rule := range rules {
+		if len(rule.Exprs) >= 3 {
+			if payload, ok := rule.Exprs[0].(*expr.Payload); ok {
+				if payload.DestRegister == 1 && payload.Base == expr.PayloadBaseNetworkHeader &&
+					payload.Offset == 12 && payload.Len == 4 {
+					if lookup, ok := rule.Exprs[1].(*expr.Lookup); ok {
+						if lookup.SourceRegister == 1 && lookup.SetName == "TBLOCKER_BLOCKED_IPS" {
+							if verdict, ok := rule.Exprs[2].(*expr.Verdict); ok {
+								if verdict.Kind == expr.VerdictDrop {
+									return true
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
-
-	_, err = execCommand("nft", "add", "set", "inet", "tblocker", "TBLOCKER_BLOCKED_IPS", "{", "type", "ipv4_addr", ";", "}")
-	if err != nil {
-		log.Printf("Warning: set might already exist: %v", err)
-	}
-
-	_, err = execCommand("nft", "add", "rule", "inet", "tblocker", "TBLOCKER_BLOCKED", "ip", "saddr", "@TBLOCKER_BLOCKED_IPS", "drop")
-	if err != nil {
-		log.Printf("Warning: rule might already exist: %v", err)
-	}
-
-	log.Printf("Nftables firewall initialized via commands")
-	f.initialized = true
-	return nil
+	return false
 }
 
 func (f *NFTFirewall) BlockIP(ip string) error {
@@ -145,20 +146,10 @@ func (f *NFTFirewall) BlockIP(ip string) error {
 
 	if err := f.conn.Flush(); err != nil {
 		log.Printf("Error adding IP %s to nftables set: %v", ip, err)
-		return f.blockIPViaCommand(ip)
+		return fmt.Errorf("failed to add IP %s to nftables set: %v", ip, err)
 	}
 
 	log.Printf("IP %s blocked with nftables", ip)
-	return nil
-}
-
-func (f *NFTFirewall) blockIPViaCommand(ip string) error {
-	_, err := execCommand("nft", "add", "element", "inet", "tblocker", "TBLOCKER_BLOCKED_IPS", "{", ip, "}")
-	if err != nil {
-		log.Printf("Error adding IP %s to nftables set via command: %v", ip, err)
-		return err
-	}
-	log.Printf("IP %s blocked with nftables via command", ip)
 	return nil
 }
 
@@ -184,20 +175,10 @@ func (f *NFTFirewall) UnblockIP(ip string) error {
 
 	if err := f.conn.Flush(); err != nil {
 		log.Printf("Error unblocking IP %s with nftables: %v", ip, err)
-		return f.unblockIPViaCommand(ip)
+		return fmt.Errorf("failed to unblock IP %s with nftables: %v", ip, err)
 	}
 
 	log.Printf("IP %s unblocked with nftables", ip)
-	return nil
-}
-
-func (f *NFTFirewall) unblockIPViaCommand(ip string) error {
-	_, err := execCommand("nft", "delete", "element", "inet", "tblocker", "TBLOCKER_BLOCKED_IPS", "{", ip, "}")
-	if err != nil {
-		log.Printf("Error unblocking IP %s with nftables via command: %v", ip, err)
-		return err
-	}
-	log.Printf("IP %s unblocked with nftables via command", ip)
 	return nil
 }
 
@@ -209,8 +190,8 @@ func (f *NFTFirewall) GetBlockedIPs() (map[string]bool, error) {
 
 	sets, err := f.conn.GetSets(table)
 	if err != nil {
-		log.Printf("Error getting sets via API, falling back to nft command: %v", err)
-		return f.getBlockedIPsViaCommand()
+		log.Printf("Error getting sets via API: %v", err)
+		return nil, fmt.Errorf("failed to get sets via API: %v", err)
 	}
 
 	blockedIPs := make(map[string]bool)
@@ -218,8 +199,8 @@ func (f *NFTFirewall) GetBlockedIPs() (map[string]bool, error) {
 		if s.Name == "TBLOCKER_BLOCKED_IPS" {
 			elements, err := f.conn.GetSetElements(s)
 			if err != nil {
-				log.Printf("Error listing nftables set via API, falling back to nft command: %v", err)
-				return f.getBlockedIPsViaCommand()
+				log.Printf("Error listing nftables set via API: %v", err)
+				return nil, fmt.Errorf("failed to list nftables set via API: %v", err)
 			}
 
 			for _, element := range elements {
@@ -229,24 +210,6 @@ func (f *NFTFirewall) GetBlockedIPs() (map[string]bool, error) {
 				}
 			}
 			break
-		}
-	}
-
-	return blockedIPs, nil
-}
-
-func (f *NFTFirewall) getBlockedIPsViaCommand() (map[string]bool, error) {
-	output, err := execCommand("nft", "list", "set", "inet", "tblocker", "TBLOCKER_BLOCKED_IPS")
-	if err != nil {
-		log.Printf("Error listing nftables set via command: %v", err)
-		return nil, err
-	}
-
-	blockedIPs := make(map[string]bool)
-	for _, line := range strings.Split(output, "\n") {
-		ip := f.ipRegex.FindString(line)
-		if ip != "" {
-			blockedIPs[ip] = true
 		}
 	}
 
