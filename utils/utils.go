@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,9 +32,10 @@ var (
 )
 
 var (
-	torrentTagBytes []byte
-	fromBytes       []byte
-	emailBytes      []byte
+	torrentTagBytes    []byte
+	torrentTagBytesLen int
+	fromBytes          []byte
+	emailBytes         []byte
 )
 
 func init() {
@@ -42,6 +44,7 @@ func init() {
 
 func initializeByteSearchPatterns() {
 	torrentTagBytes = []byte(config.TorrentTag)
+	torrentTagBytesLen = len(torrentTagBytes)
 	fromBytes = []byte("from ")
 	emailBytes = []byte("email: ")
 
@@ -60,30 +63,44 @@ func StartLogMonitor() {
 		log.Fatalf("Error opening log file: %v", err)
 	}
 
-	for line := range t.Lines {
-		lineBytes := stringToBytes(line.Text)
+	if config.EnablePerformanceMetrics {
+		for line := range t.Lines {
+			lineBytes := stringToBytes(line.Text)
 
-		hasTorrentTag := containsBytes(lineBytes, torrentTagBytes)
-
-		if config.EnablePerformanceMetrics {
 			parseStart := time.Now()
+			hasTorrentTag := hasTagInLine(lineBytes)
 			parseDuration := time.Since(parseStart)
-
 			updateParseStats(parseDuration, hasTorrentTag)
-		}
 
-		if hasTorrentTag {
-			handleLogEntry(line.Text)
+			if hasTorrentTag {
+				handleLogEntry(line.Text)
+			}
+		}
+	} else {
+		for line := range t.Lines {
+			lineBytes := stringToBytes(line.Text)
+
+			hasTorrentTag := hasTagInLine(lineBytes)
+
+			if hasTorrentTag {
+				handleLogEntry(line.Text)
+			}
 		}
 	}
+
+}
+
+func hasTagInLine(lineBytes []byte) bool {
+	lineLen := len(lineBytes)
+	expectedStart := lineLen - torrentTagBytesLen - 1
+	if expectedStart < 0 || lineBytes[expectedStart-1] != ']' {
+		return false
+	}
+	return bytes.Equal(lineBytes[expectedStart:lineLen-1], torrentTagBytes)
 }
 
 func parseLogEntryFast(line string) (ip, username string, valid bool) {
 	lineBytes := stringToBytes(line)
-
-	if !containsBytes(lineBytes, torrentTagBytes) {
-		return "", "", false
-	}
 
 	fromIndex := indexBytes(lineBytes, fromBytes)
 	if fromIndex == -1 {
@@ -301,32 +318,6 @@ func isValidIPFormat(ip string) bool {
 	}
 
 	return true
-}
-
-func containsBytes(haystack, needle []byte) bool {
-	if len(needle) == 0 {
-		return true
-	}
-	if len(needle) > len(haystack) {
-		return false
-	}
-
-	first := needle[0]
-	for i := 0; i <= len(haystack)-len(needle); i++ {
-		if haystack[i] == first {
-			match := true
-			for j := 1; j < len(needle); j++ {
-				if haystack[i+j] != needle[j] {
-					match = false
-					break
-				}
-			}
-			if match {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func indexBytes(haystack, needle []byte) int {
