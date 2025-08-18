@@ -59,6 +59,10 @@ WebhookHeaders:
 		t.Error("Expected SendWebhook to be true")
 	}
 
+	if !IgnoreEmail {
+		t.Error("Expected IgnoreEmail to be true")
+	}
+
 	if WebhookURL != "https://test.com/webhook" {
 		t.Errorf("Expected WebhookURL 'https://test.com/webhook', got '%s'", WebhookURL)
 	}
