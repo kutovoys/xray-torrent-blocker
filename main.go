@@ -19,8 +19,6 @@ func main() {
 
 	log.Printf("XRay torrent-blocker: %s", Version)
 	log.Printf("Service started on %s", config.Hostname)
-	log.Printf("Version 1.0.1")
-	log.Printf(fmt.Sprintf("%t", config.IgnoreEmail))
 
 	utils.InitConntrackManager()
 
