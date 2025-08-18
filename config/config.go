@@ -14,6 +14,7 @@ var (
 	TorrentTag    string
 	BlockMode     string
 	BypassIPSet   = make(map[string]struct{})
+	IgnoreEmail     bool
 	StorageDir    string
 
 	SendWebhook     bool
@@ -36,6 +37,7 @@ type Config struct {
 	UsernameRegex   string            `yaml:"UsernameRegex"`
 	BlockMode       string            `yaml:"BlockMode"`
 	BypassIPS       []string          `yaml:"BypassIPS"`
+	IgnoreEmail     bool              `yaml:"IgnoreEmail"`
 	SendWebhook     bool              `yaml:"SendWebhook"`
 	WebhookURL      string            `yaml:"WebhookURL"`
 	WebhookTemplate string            `yaml:"WebhookTemplate"`
@@ -58,6 +60,7 @@ func LoadConfig(configPath string) error {
 	LogFile = cfg.LogFile
 	BlockDuration = cfg.BlockDuration
 	TorrentTag = cfg.TorrentTag
+	IgnoreEmail = cfg.IgnoreEmail
 	SendWebhook = cfg.SendWebhook
 	WebhookURL = cfg.WebhookURL
 	WebhookHeaders = cfg.WebhookHeaders
