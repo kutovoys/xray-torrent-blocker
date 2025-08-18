@@ -141,6 +141,7 @@ func parseLogEntryFast(line string) (ip, username string, valid bool) {
 	}
 
 	if config.IgnoreEmail == true {
+		log.PrintLn("TRUE TRUE TRUE")
 		return ip, "__NO_USER_NAME__", true
 	}
 	
