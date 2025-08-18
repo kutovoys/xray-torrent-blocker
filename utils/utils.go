@@ -123,7 +123,7 @@ func parseLogEntryFast(line string) (ip, username string, valid bool) {
 
 	emailIndex := indexBytes(lineBytes, emailBytes)
 	if emailIndex == -1 {
-		if config.IgnoreEmail == true {
+		if config.IgnoreEmail {
 		   return ip, "__NO_USER_NAME__", true
 	    }
 		return "", "", false
