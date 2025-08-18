@@ -12,6 +12,7 @@ BlockDuration: 15
 TorrentTag: "TEST_TORRENT"
 UsernameRegex: "user: (\\S+)"
 BlockMode: "iptables"
+IgnoreEmail: true
 BypassIPS:
   - "127.0.0.1"
   - "192.168.1.1"
