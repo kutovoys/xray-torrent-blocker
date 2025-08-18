@@ -140,6 +140,10 @@ func parseLogEntryFast(line string) (ip, username string, valid bool) {
 		return "", "", false
 	}
 
+	if config.IgnoreEmail {
+		return ip, "__NO_USER_NAME__", true
+	}
+	
 	username = line[userStart:userEnd]
 	return ip, username, true
 }
