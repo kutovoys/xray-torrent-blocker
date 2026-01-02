@@ -59,6 +59,10 @@ WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","durati
 # Optional. Path to the directory for storing the blocked IP addresses file.
 StorageDir: "/opt/tblocker"
 
+# Опционально. Имя хоста сервера. Если не указано, будет использоваться системное имя.
+# Optional. Server hostname. If not set, system hostname will be used.
+# Hostname: "my-server-name"
+
 # Опционально. Заголовки, которые будут добавлены к webhook-запросу.
 # Можно использовать для авторизации или кастомной информации.
 # Optional. Headers to include in the webhook request.

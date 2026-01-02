@@ -41,6 +41,7 @@ type Config struct {
 	WebhookTemplate string            `yaml:"WebhookTemplate"`
 	StorageDir      string            `yaml:"StorageDir"`
 	WebhookHeaders  map[string]string `yaml:"WebhookHeaders"`
+	Hostname        string            `yaml:"Hostname"`
 }
 
 func LoadConfig(configPath string) error {
@@ -71,7 +72,12 @@ func LoadConfig(configPath string) error {
 		return fmt.Errorf("invalid UsernameRegex pattern: %v", err)
 	}
 
-	Hostname, err = os.Hostname()
+	if cfg.Hostname != "" {
+	    Hostname = cfg.Hostname
+	} else {
+	    Hostname, err = os.Hostname()
+	}
+	
 	if cfg.BlockMode != "" {
 		BlockMode = cfg.BlockMode
 	} else {
