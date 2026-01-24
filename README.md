@@ -139,6 +139,9 @@ BypassIPS:
   - "127.0.0.1"
   - "::1"
 
+# Ignore missing email field in logs (for TPROXY scenarios)
+IgnoreEmail: false
+
 # Storage directory for block data
 StorageDir: "/opt/tblocker"
 

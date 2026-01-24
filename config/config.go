@@ -8,13 +8,17 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	DefaultNoEmailUsername = "__NO_USER_NAME__"
+)
+
 var (
 	LogFile       string
 	BlockDuration int
 	TorrentTag    string
 	BlockMode     string
 	BypassIPSet   = make(map[string]struct{})
-	IgnoreEmail     bool
+	IgnoreEmail   bool
 	StorageDir    string
 
 	SendWebhook     bool
@@ -76,11 +80,11 @@ func LoadConfig(configPath string) error {
 	}
 
 	if cfg.Hostname != "" {
-	    Hostname = cfg.Hostname
+		Hostname = cfg.Hostname
 	} else {
-	    Hostname, err = os.Hostname()
+		Hostname, err = os.Hostname()
 	}
-	
+
 	if cfg.BlockMode != "" {
 		BlockMode = cfg.BlockMode
 	} else {
