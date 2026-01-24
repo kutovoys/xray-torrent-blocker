@@ -12,6 +12,7 @@ BlockDuration: 15
 TorrentTag: "TEST_TORRENT"
 UsernameRegex: "user: (\\S+)"
 BlockMode: "iptables"
+IgnoreEmail: true
 BypassIPS:
   - "127.0.0.1"
   - "192.168.1.1"
@@ -57,6 +58,10 @@ WebhookHeaders:
 
 	if !SendWebhook {
 		t.Error("Expected SendWebhook to be true")
+	}
+
+	if !IgnoreEmail {
+		t.Error("Expected IgnoreEmail to be true")
 	}
 
 	if WebhookURL != "https://test.com/webhook" {
