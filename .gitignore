@@ -4,3 +4,4 @@ config.yaml
 .github/workflows/test.yaml
 .claude/
 dist/
+tblocker 
