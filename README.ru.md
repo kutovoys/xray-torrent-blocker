@@ -11,6 +11,8 @@ Xray Torrent Blocker — это приложение для блокировки
 - Блокировка IP-адресов на системном уровне с максимальной скоростью блокировки (Абузы не придут!)
 - Прерывание соединений через conntrack - мгновенный разрыв существующих торрент-соединений
 - Отправка вебхуков на настроенный URL вебхука
+- Встроенные уведомления в Telegram о блокировке/разблокировке
+- Встроенный HTTP API и веб-панель: просмотр заблокированных IP, ручная разблокировка, статистика
 - Настройка через конфигурационный файл
 - Поддержка различных файрволов для блокировки (iptables, nftables)
 - Настраиваемая продолжительность блокировки
@@ -155,7 +157,43 @@ WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","durati
 WebhookHeaders:
   Authorization: "Bearer your-token"
   Content-Type: "application/json"
+
+# HTTP API и веб-панель
+EnableAPI: false
+APIAddress: "127.0.0.1:8085"
+APIToken: "change-me-to-a-long-random-token"
+
+# Уведомления в Telegram
+SendTelegram: false
+TelegramBotToken: "123456:ABC-DEF..."
+TelegramChatID: "-1001234567890"
+TelegramTemplate: "🚫 Torrent detected!\nUser: %s\nIP: %s\nServer: %s\nAction: %s\nDuration: %d min\nTime: %s"
 ```
+
+### Веб-панель и API
+
+При `EnableAPI: true` и заданном `APIToken` tblocker запускает веб-панель и JSON API на адресе `APIAddress` (по умолчанию `127.0.0.1:8085`). Откройте `http://127.0.0.1:8085/` в браузере и введите токен, чтобы просматривать заблокированные IP, разблокировать их вручную и видеть статистику блокировок с момента запуска.
+
+Эндпоинты API (все требуют заголовок `Authorization: Bearer <APIToken>`):
+
+| Метод    | Путь                | Описание                                             |
+| -------- | ------------------- | ---------------------------------------------------- |
+| `GET`    | `/api/blocked`      | Список заблокированных IP                            |
+| `DELETE` | `/api/blocked/{ip}` | Немедленно разблокировать IP                         |
+| `GET`    | `/api/stats`        | Статистика блокировок (всего с запуска, по юзерам)   |
+
+Пример:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8085/api/blocked
+curl -X DELETE -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8085/api/blocked/1.2.3.4
+```
+
+По умолчанию API слушает только localhost. Для удалённого доступа измените `APIAddress` (например `"0.0.0.0:8085"`) или используйте обратный прокси с TLS.
+
+### Уведомления в Telegram
+
+При `SendTelegram: true` tblocker отправляет сообщение в чат или канал Telegram при каждой блокировке и разблокировке — напрямую через Bot API, без внешнего вебхук-сервиса. Создайте бота через [@BotFather](https://t.me/BotFather), добавьте его в группу/канал и укажите `TelegramBotToken` и `TelegramChatID`. Текст сообщения задаётся шаблоном `TelegramTemplate`, который использует те же переменные и в том же порядке, что и `WebhookTemplate`.
 
 ## Конфигурация панелей
 
