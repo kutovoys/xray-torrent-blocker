@@ -70,3 +70,33 @@ StorageDir: "/opt/tblocker"
 WebhookHeaders:
   Authorization: "Bearer your-secret-token"
   X-Custom-Header: "some-value"
+
+# Опционально. Включить HTTP API и веб-панель (просмотр блокировок, ручная разблокировка, статистика).
+# Optional. Enable the HTTP API and web dashboard (view blocks, manual unblock, stats).
+EnableAPI: false
+
+# Опционально. Адрес, на котором слушает HTTP API. По умолчанию "127.0.0.1:8085".
+# Optional. Listen address for the HTTP API. Defaults to "127.0.0.1:8085".
+APIAddress: "127.0.0.1:8085"
+
+# Обязателен при EnableAPI: true. Bearer-токен для доступа к API и веб-панели.
+# Required when EnableAPI is true. Bearer token for API and dashboard access.
+APIToken: "change-me-to-a-long-random-token"
+
+# Опционально. Отправлять ли уведомления в Telegram.
+# Optional. Whether to send Telegram notifications.
+SendTelegram: false
+
+# Обязателен при SendTelegram: true. Токен бота Telegram (получить у @BotFather).
+# Required when SendTelegram is true. Telegram bot token (get one from @BotFather).
+TelegramBotToken: "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+
+# Обязателен при SendTelegram: true. ID чата/канала (например "-1001234567890" или "@mychannel").
+# Required when SendTelegram is true. Chat/channel ID (e.g. "-1001234567890" or "@mychannel").
+TelegramChatID: "-1001234567890"
+
+# Опционально. Шаблон сообщения Telegram.
+# Переменные (в том же порядке, что и в WebhookTemplate): %s - username, %s - ip, %s - server, %s - action (block/unblock), %d - duration (minutes), %s - timestamp
+# Optional. Telegram message template.
+# Variables (same order as WebhookTemplate): %s - username, %s - ip, %s - server, %s - action (block/unblock), %d - duration (minutes), %s - timestamp
+TelegramTemplate: "🚫 Torrent detected!\nUser: %s\nIP: %s\nServer: %s\nAction: %s\nDuration: %d min\nTime: %s"

@@ -32,6 +32,15 @@ var (
 	Hostname string
 
 	EnablePerformanceMetrics bool
+
+	EnableAPI  bool
+	APIAddress string
+	APIToken   string
+
+	SendTelegram     bool
+	TelegramBotToken string
+	TelegramChatID   string
+	TelegramTemplate string
 )
 
 type Config struct {
@@ -48,6 +57,15 @@ type Config struct {
 	StorageDir      string            `yaml:"StorageDir"`
 	WebhookHeaders  map[string]string `yaml:"WebhookHeaders"`
 	Hostname        string            `yaml:"Hostname"`
+
+	EnableAPI  bool   `yaml:"EnableAPI"`
+	APIAddress string `yaml:"APIAddress"`
+	APIToken   string `yaml:"APIToken"`
+
+	SendTelegram     bool   `yaml:"SendTelegram"`
+	TelegramBotToken string `yaml:"TelegramBotToken"`
+	TelegramChatID   string `yaml:"TelegramChatID"`
+	TelegramTemplate string `yaml:"TelegramTemplate"`
 }
 
 func LoadConfig(configPath string) error {
@@ -112,6 +130,29 @@ func LoadConfig(configPath string) error {
 	StorageDir = cfg.StorageDir
 	if StorageDir == "" {
 		StorageDir = "/opt/tblocker"
+	}
+
+	EnableAPI = cfg.EnableAPI
+	APIToken = cfg.APIToken
+	if cfg.APIAddress != "" {
+		APIAddress = cfg.APIAddress
+	} else {
+		APIAddress = "127.0.0.1:8085"
+	}
+	if EnableAPI && APIToken == "" {
+		return fmt.Errorf("APIToken is required when EnableAPI is true")
+	}
+
+	SendTelegram = cfg.SendTelegram
+	TelegramBotToken = cfg.TelegramBotToken
+	TelegramChatID = cfg.TelegramChatID
+	if cfg.TelegramTemplate != "" {
+		TelegramTemplate = cfg.TelegramTemplate
+	} else {
+		TelegramTemplate = "🚫 Torrent detected!\nUser: %s\nIP: %s\nServer: %s\nAction: %s\nDuration: %d min\nTime: %s"
+	}
+	if SendTelegram && (TelegramBotToken == "" || TelegramChatID == "") {
+		return fmt.Errorf("TelegramBotToken and TelegramChatID are required when SendTelegram is true")
 	}
 
 	return err

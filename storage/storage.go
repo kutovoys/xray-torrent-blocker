@@ -105,6 +105,24 @@ func (s *IPStorage) RemoveBlockedIP(ip string) error {
 	return s.save()
 }
 
+// TakeBlockedIP removes ip from storage and returns its record, if present.
+// The lookup and delete happen under one lock so concurrent callers cannot
+// both take the same entry.
+func (s *IPStorage) TakeBlockedIP(ip string) (BlockedIP, bool) {
+	s.mu.Lock()
+	info, exists := s.ips[ip]
+	if exists {
+		delete(s.ips, ip)
+	}
+	s.mu.Unlock()
+
+	if exists {
+		s.save()
+	}
+
+	return info, exists
+}
+
 func (s *IPStorage) IsBlocked(ip string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
