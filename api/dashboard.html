@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tblocker Dashboard</title>
+<style>
+  :root {
+    --bg: #10141a;
+    --card: #1a2029;
+    --border: #2a3240;
+    --text: #e6e9ee;
+    --muted: #8a94a3;
+    --accent: #4f8cff;
+    --danger: #e5534b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin: 0; }
+  h2 { font-size: 15px; margin: 24px 0 8px; color: var(--muted); font-weight: 600; }
+  .server { color: var(--muted); font-size: 13px; }
+  nav {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  nav a {
+    padding: 8px 16px;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    user-select: none;
+  }
+  nav a:hover { color: var(--text); }
+  nav a.active {
+    color: var(--accent);
+    background: var(--card);
+    border-color: var(--border);
+    position: relative;
+    top: 1px;
+  }
+  .badge {
+    display: inline-block;
+    min-width: 18px;
+    padding: 0 5px;
+    margin-left: 6px;
+    background: var(--danger);
+    color: #fff;
+    border-radius: 9px;
+    font-size: 11px;
+    text-align: center;
+  }
+  .badge:empty { display: none; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .tile {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .tile .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .tile .value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td { text-align: left; padding: 9px 12px; font-size: 14px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  tr:last-child td { border-bottom: none; }
+  .empty { color: var(--muted); padding: 12px; font-size: 14px; }
+  button {
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--danger); color: #fff; }
+  a.logout { color: var(--muted); font-size: 13px; cursor: pointer; text-decoration: underline; }
+  #login {
+    max-width: 360px;
+    margin: 80px auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+  #login input {
+    width: 100%;
+    padding: 8px 10px;
+    margin: 12px 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+  }
+  #login button {
+    width: 100%;
+    border-color: var(--accent);
+    color: var(--accent);
+    padding: 8px;
+  }
+  #login button:hover { background: var(--accent); color: #fff; }
+  .error { color: var(--danger); font-size: 13px; min-height: 18px; margin: 0; }
+</style>
+</head>
+<body>
+
+<div id="login" hidden>
+  <h1>Tblocker Dashboard</h1>
+  <p class="server">Enter the API token from config.yaml (APIToken).</p>
+  <input id="token-input" type="password" placeholder="API token" autocomplete="off">
+  <p class="error" id="login-error"></p>
+  <button id="login-btn">Sign in</button>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <h1>Tblocker Dashboard <span class="server" id="server-name"></span></h1>
+    <a class="logout" id="logout">Log out</a>
+  </header>
+
+  <nav id="menu">
+    <a data-tab="overview" class="active">Overview</a>
+    <a data-tab="blocked">Blocked IPs<span class="badge" id="blocked-badge"></span></a>
+    <a data-tab="users">Users</a>
+  </nav>
+
+  <section id="tab-overview">
+    <div class="tiles">
+      <div class="tile"><div class="label">Currently blocked</div><div class="value" id="stat-current">–</div></div>
+      <div class="tile"><div class="label">Total blocks since start</div><div class="value" id="stat-total">–</div></div>
+      <div class="tile"><div class="label">Running since</div><div class="value" id="stat-started" style="font-size:16px">–</div></div>
+    </div>
+  </section>
+
+  <section id="tab-blocked" hidden>
+    <h2>Blocked IPs</h2>
+    <div id="blocked-wrap"></div>
+  </section>
+
+  <section id="tab-users" hidden>
+    <h2>Blocks per user</h2>
+    <div id="users-wrap"></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var TOKEN_KEY = "tblocker_token";
+  var TAB_KEY = "tblocker_tab";
+  var refreshTimer = null;
+
+  function token() { return localStorage.getItem(TOKEN_KEY) || ""; }
+
+  function api(path, options) {
+    options = options || {};
+    options.headers = Object.assign({}, options.headers, {
+      "Authorization": "Bearer " + token()
+    });
+    return fetch(path, options).then(function (res) {
+      if (res.status === 401) {
+        showLogin("Invalid or expired token.");
+        throw new Error("unauthorized");
+      }
+      return res;
+    });
+  }
+
+  function showLogin(message) {
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    document.getElementById("app").hidden = true;
+    document.getElementById("login").hidden = false;
+    document.getElementById("login-error").textContent = message || "";
+  }
+
+  function showApp() {
+    document.getElementById("login").hidden = true;
+    document.getElementById("app").hidden = false;
+    loadAll();
+    if (!refreshTimer) refreshTimer = setInterval(loadAll, 10000);
+  }
+
+  function selectTab(name) {
+    document.querySelectorAll("#menu a").forEach(function (link) {
+      link.classList.toggle("active", link.dataset.tab === name);
+    });
+    ["overview", "blocked", "users"].forEach(function (tab) {
+      document.getElementById("tab-" + tab).hidden = tab !== name;
+    });
+    localStorage.setItem(TAB_KEY, name);
+  }
+
+  function el(tag, text) {
+    var node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function renderTable(container, headers, rows, emptyText) {
+    container.textContent = "";
+    if (!rows.length) {
+      container.appendChild(el("div", emptyText)).className = "empty";
+      return;
+    }
+    var table = el("table");
+    var trh = el("tr");
+    headers.forEach(function (h) { trh.appendChild(el("th", h)); });
+    table.appendChild(trh);
+    rows.forEach(function (cells) {
+      var tr = el("tr");
+      cells.forEach(function (cell) {
+        var td = el("td");
+        if (cell instanceof Node) td.appendChild(cell); else td.textContent = cell;
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+    container.appendChild(table);
+  }
+
+  function remaining(until) {
+    var mins = Math.max(0, Math.round((new Date(until) - Date.now()) / 60000));
+    return mins + " min left";
+  }
+
+  function loadBlocked() {
+    return api("/api/blocked").then(function (res) { return res.json(); }).then(function (list) {
+      document.getElementById("blocked-badge").textContent = list.length ? String(list.length) : "";
+      var rows = list.map(function (entry) {
+        var btn = el("button", "Unblock");
+        btn.addEventListener("click", function () {
+          btn.disabled = true;
+          api("/api/blocked/" + encodeURIComponent(entry.ip), { method: "DELETE" })
+            .then(function (res) {
+              if (!res.ok) {
+                return res.json().then(function (body) {
+                  alert("Unblock failed: " + (body.error || res.status));
+                });
+              }
+            })
+            .then(loadAll)
+            .catch(function () {})
+            .finally(function () { btn.disabled = false; });
+        });
+        return [
+          entry.ip,
+          entry.username,
+          new Date(entry.blocked_until).toLocaleString() + " (" + remaining(entry.blocked_until) + ")",
+          btn
+        ];
+      });
+      renderTable(document.getElementById("blocked-wrap"),
+        ["IP", "Username", "Blocked until", ""], rows, "No IPs are currently blocked.");
+    });
+  }
+
+  function loadStats() {
+    return api("/api/stats").then(function (res) { return res.json(); }).then(function (stats) {
+      document.getElementById("server-name").textContent = stats.server ? "· " + stats.server : "";
+      document.getElementById("stat-current").textContent = stats.currently_blocked;
+      document.getElementById("stat-total").textContent = stats.total_blocks;
+      document.getElementById("stat-started").textContent = new Date(stats.started_at).toLocaleString();
+
+      var users = Object.keys(stats.per_user || {}).map(function (user) {
+        return { user: user, count: stats.per_user[user] };
+      }).sort(function (a, b) { return b.count - a.count; });
+
+      renderTable(document.getElementById("users-wrap"), ["Username", "Blocks"],
+        users.map(function (u) { return [u.user, u.count]; }),
+        "No blocks recorded since start.");
+    });
+  }
+
+  function loadAll() {
+    Promise.all([loadStats(), loadBlocked()]).catch(function () {});
+  }
+
+  document.getElementById("menu").addEventListener("click", function (e) {
+    var tab = e.target.closest("a");
+    if (tab && tab.dataset.tab) selectTab(tab.dataset.tab);
+  });
+
+  document.getElementById("login-btn").addEventListener("click", function () {
+    var value = document.getElementById("token-input").value.trim();
+    if (!value) return;
+    localStorage.setItem(TOKEN_KEY, value);
+    showApp();
+  });
+  document.getElementById("token-input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("login-btn").click();
+  });
+  document.getElementById("logout").addEventListener("click", function () {
+    localStorage.removeItem(TOKEN_KEY);
+    showLogin("");
+  });
+
+  var savedTab = localStorage.getItem(TAB_KEY);
+  if (savedTab === "overview" || savedTab === "blocked" || savedTab === "users") {
+    selectTab(savedTab);
+  }
+  if (token()) showApp(); else showLogin("");
+})();
+</script>
+</body>
+</html>

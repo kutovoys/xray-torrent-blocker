@@ -234,3 +234,80 @@ func TestConcurrentAccess(t *testing.T) {
 		t.Errorf("Expected 10 blocked IPs, got %d", len(blockedIPs))
 	}
 }
+
+func TestTakeBlockedIP(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "storage_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	unblockFunc := func(ip string, delay time.Duration, username string) {
+	}
+
+	storage, err := NewIPStorage(tempDir, unblockFunc)
+	if err != nil {
+		t.Fatalf("Failed to create IP storage: %v", err)
+	}
+
+	err = storage.AddBlockedIP("192.168.1.100", "testuser", 10*time.Minute)
+	if err != nil {
+		t.Fatalf("Failed to add test IP: %v", err)
+	}
+
+	info, ok := storage.TakeBlockedIP("192.168.1.100")
+	if !ok {
+		t.Fatal("Expected TakeBlockedIP to find the entry")
+	}
+	if info.Username != "testuser" {
+		t.Errorf("Expected username 'testuser', got '%s'", info.Username)
+	}
+	if storage.IsBlocked("192.168.1.100") {
+		t.Error("Expected IP to be removed after TakeBlockedIP")
+	}
+
+	_, ok = storage.TakeBlockedIP("192.168.1.100")
+	if ok {
+		t.Error("Expected second TakeBlockedIP to return false")
+	}
+}
+
+func TestTakeBlockedIPConcurrent(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "storage_test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	unblockFunc := func(ip string, delay time.Duration, username string) {
+	}
+
+	storage, err := NewIPStorage(tempDir, unblockFunc)
+	if err != nil {
+		t.Fatalf("Failed to create IP storage: %v", err)
+	}
+
+	err = storage.AddBlockedIP("10.0.0.1", "testuser", 10*time.Minute)
+	if err != nil {
+		t.Fatalf("Failed to add test IP: %v", err)
+	}
+
+	results := make(chan bool, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			_, ok := storage.TakeBlockedIP("10.0.0.1")
+			results <- ok
+		}()
+	}
+
+	winners := 0
+	for i := 0; i < 2; i++ {
+		if <-results {
+			winners++
+		}
+	}
+
+	if winners != 1 {
+		t.Errorf("Expected exactly one successful take, got %d", winners)
+	}
+}

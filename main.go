@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"tblocker/api"
 	"tblocker/config"
 	"tblocker/firewall"
 	"tblocker/storage"
@@ -21,6 +22,10 @@ func main() {
 	log.Printf("Service started on %s", config.Hostname)
 
 	utils.InitConntrackManager()
+
+	if config.EnableAPI {
+		go api.StartServer()
+	}
 
 	utils.StartLogMonitor()
 }
@@ -66,6 +71,7 @@ func initConfig() {
 		log.Fatalf("Failed to initialize IP storage: %v", err)
 	}
 	utils.SetIPStorage(store)
+	api.SetIPStorage(store)
 
 	utils.ScheduleBlockedIPsUpdate()
 }

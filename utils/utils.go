@@ -117,7 +117,7 @@ func parseLogEntryFast(line string) (ip, username string, valid bool) {
 
 	ip = line[ipStart:ipEnd]
 
-	if !isValidIPFormat(ip) {
+	if !IsValidIPFormat(ip) {
 		return "", "", false
 	}
 
@@ -168,11 +168,16 @@ func handleLogEntry(line string) {
 		log.Printf("Error saving blocked IP to storage: %v", err)
 	}
 
+	RecordBlock(usernameStr)
+
 	go BlockIP(ip)
 	log.Printf("User %s with IP: %s blocked for %d minutes\n", usernameStr, ip, config.BlockDuration)
 
 	if config.SendWebhook {
 		go SendWebhook(usernameStr, ip, "block")
+	}
+	if config.SendTelegram {
+		go SendTelegramNotification(usernameStr, ip, "block")
 	}
 }
 
@@ -278,6 +283,46 @@ func UnblockIPAfterDelay(ip string, delay time.Duration, username string) {
 	if config.SendWebhook {
 		go SendWebhook(username, ip, "unblock")
 	}
+	if config.SendTelegram {
+		go SendTelegramNotification(username, ip, "unblock")
+	}
+}
+
+// ForceUnblock immediately removes an active block, e.g. for a manual unblock
+// requested via the API. Removing the storage entry first also defuses the
+// pending UnblockIPAfterDelay timer for this IP.
+func ForceUnblock(ip string) error {
+	if _, exists := ipStorage.GetBlockedIPs()[ip]; !exists {
+		return fmt.Errorf("IP %s is not blocked", ip)
+	}
+
+	if firewallManager == nil {
+		return fmt.Errorf("firewall manager not initialized")
+	}
+
+	info, exists := ipStorage.TakeBlockedIP(ip)
+	if !exists {
+		return fmt.Errorf("IP %s is not blocked", ip)
+	}
+
+	if err := firewallManager.UnblockIP(ip); err != nil {
+		if strings.Contains(err.Error(), "no rule found") || strings.Contains(err.Error(), "exit status 1") {
+			log.Printf("IP %s already unblocked or rule not found, continuing...", ip)
+		} else {
+			return fmt.Errorf("error unblocking IP %s: %v", ip, err)
+		}
+	}
+
+	log.Printf("User %s with IP: %s manually unblocked\n", info.Username, ip)
+
+	if config.SendWebhook {
+		go SendWebhook(info.Username, ip, "unblock")
+	}
+	if config.SendTelegram {
+		go SendTelegramNotification(info.Username, ip, "unblock")
+	}
+
+	return nil
 }
 
 func IsBypassedIP(ip string) bool {
@@ -285,7 +330,7 @@ func IsBypassedIP(ip string) bool {
 	return exists
 }
 
-func isValidIPFormat(ip string) bool {
+func IsValidIPFormat(ip string) bool {
 	parts := strings.Split(ip, ".")
 	if len(parts) != 4 {
 		return false

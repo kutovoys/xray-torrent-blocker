@@ -11,6 +11,8 @@ Xray Torrent Blocker is an application designed to block torrent usage by users 
 - IP address blocking at the system level with maximum block speed (no abuse reports!)
 - Connection termination via conntrack - instantly break existing torrent connections
 - Sending webhooks to the configured webhook URL
+- Native Telegram notifications on block/unblock
+- Built-in HTTP API and web dashboard: view blocked IPs, unblock manually, see stats
 - Configurable through a configuration file
 - Supports various firewalls for blocking (iptables, nftables)
 - Configurable block duration
@@ -155,7 +157,43 @@ WebhookTemplate: '{"username":"%s","ip":"%s","server":"%s","action":"%s","durati
 WebhookHeaders:
   Authorization: "Bearer your-token"
   Content-Type: "application/json"
+
+# HTTP API and web dashboard
+EnableAPI: false
+APIAddress: "127.0.0.1:8085"
+APIToken: "change-me-to-a-long-random-token"
+
+# Telegram notifications
+SendTelegram: false
+TelegramBotToken: "123456:ABC-DEF..."
+TelegramChatID: "-1001234567890"
+TelegramTemplate: "🚫 Torrent detected!\nUser: %s\nIP: %s\nServer: %s\nAction: %s\nDuration: %d min\nTime: %s"
 ```
+
+### Web Dashboard and API
+
+With `EnableAPI: true` and an `APIToken` set, tblocker serves a web dashboard and a JSON API on `APIAddress` (default `127.0.0.1:8085`). Open `http://127.0.0.1:8085/` in a browser and enter the token to view currently blocked IPs, unblock them manually, and see block statistics since start.
+
+API endpoints (all require `Authorization: Bearer <APIToken>`):
+
+| Method   | Path                | Description                                        |
+| -------- | ------------------- | -------------------------------------------------- |
+| `GET`    | `/api/blocked`      | List currently blocked IPs                         |
+| `DELETE` | `/api/blocked/{ip}` | Immediately unblock an IP                          |
+| `GET`    | `/api/stats`        | Block statistics (total since start, per user)     |
+
+Example:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8085/api/blocked
+curl -X DELETE -H "Authorization: Bearer $TOKEN" http://127.0.0.1:8085/api/blocked/1.2.3.4
+```
+
+The API binds to localhost by default. To access it remotely, either change `APIAddress` (e.g. `"0.0.0.0:8085"`) or put it behind a reverse proxy with TLS.
+
+### Telegram Notifications
+
+With `SendTelegram: true`, tblocker sends a message to a Telegram chat or channel on every block and unblock, directly via the Bot API (no webhook service needed). Create a bot with [@BotFather](https://t.me/BotFather), add it to your group/channel, and set `TelegramBotToken` and `TelegramChatID`. The message text is controlled by `TelegramTemplate`, which uses the same variables and order as `WebhookTemplate`.
 
 ## Panels Configuration
 
