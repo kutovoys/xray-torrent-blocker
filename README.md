@@ -118,6 +118,8 @@ After installation, the application uses default configuration. You can customiz
 ```yaml
 # Log file to monitor
 LogFile: "/var/log/remnanode/access.log"
+# Also supported journald service log reading
+# LogFile: "journald:xray-node.service"
 
 # Block duration in minutes
 BlockDuration: 10
