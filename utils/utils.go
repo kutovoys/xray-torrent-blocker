@@ -1,12 +1,15 @@
 package utils
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/http"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"tblocker/config"
 	"tblocker/firewall"
 	"tblocker/storage"
@@ -49,19 +52,22 @@ func initializeByteSearchPatterns() {
 		config.TorrentTag, len(torrentTagBytes))
 }
 
+const journaldPrefix = "journald:"
+
 func StartLogMonitor() {
-	t, err := tail.TailFile(config.LogFile, tail.Config{
-		Follow:    true,
-		ReOpen:    true,
-		Location:  &tail.SeekInfo{Offset: 0, Whence: 2},
-		MustExist: false,
-	})
+	var lines chan string
+	var err error
+	if unit, ok := strings.CutPrefix(config.LogFile, journaldPrefix); ok {
+		lines, err = startJournaldMonitor(unit)
+	} else {
+		lines, err = startFileMonitor(config.LogFile)
+	}
 	if err != nil {
-		log.Fatalf("Error opening log file: %v", err)
+		log.Fatalf("Error opening log: %v", err)
 	}
 
-	for line := range t.Lines {
-		lineBytes := stringToBytes(line.Text)
+	for line := range lines {
+		lineBytes := stringToBytes(line)
 
 		hasTorrentTag := containsBytes(lineBytes, torrentTagBytes)
 
@@ -73,9 +79,96 @@ func StartLogMonitor() {
 		}
 
 		if hasTorrentTag {
-			handleLogEntry(line.Text)
+			handleLogEntry(line)
 		}
 	}
+}
+
+func startFileMonitor(file string) (chan string, error) {
+	t, err := tail.TailFile(file, tail.Config{
+		Follow:    true,
+		ReOpen:    true,
+		Location:  &tail.SeekInfo{Offset: 0, Whence: 2},
+		MustExist: false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("opening log file: %v", err)
+	}
+
+	lines := make(chan string)
+	go func() {
+		defer close(lines)
+
+		for line := range t.Lines {
+			if line.Err != nil {
+				log.Printf("tail reading: %v", err)
+			} else {
+				lines <- line.Text
+			}
+		}
+	}()
+
+	return lines, nil
+}
+
+func startJournaldMonitor(unit string) (chan string, error) {
+	lines := make(chan string)
+
+	go func() {
+		defer close(lines)
+
+		log.Print("start journald monitoring")
+		for {
+			if err := monitorJournald(unit, lines); err != nil {
+				log.Printf("journald monitoring: %v", err)
+			}
+			time.Sleep(1 * time.Second)
+			log.Print("restart journald monitoring")
+		}
+	}()
+
+	return lines, nil
+}
+
+func monitorJournald(unit string, lines chan string) error {
+	cmd := exec.Command(
+		"journalctl",
+		"-u", unit,
+		"-f",
+		"-n", "0",
+		"-o", "cat",
+	)
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Pdeathsig: syscall.SIGKILL,
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("journalctl pipe: %v", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("journalctl start: %v", err)
+	}
+
+	defer func() {
+		if err := cmd.Wait(); err != nil {
+			log.Printf("journalctl exited: %v", err)
+		}
+	}()
+
+	scanner := bufio.NewScanner(stdout)
+
+	for scanner.Scan() {
+		lines <- scanner.Text()
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("journalctl reading: %v", err)
+	}
+
+	return nil
 }
 
 func parseLogEntryFast(line string) (ip, username string, valid bool) {
