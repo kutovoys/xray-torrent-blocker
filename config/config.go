@@ -13,13 +13,14 @@ const (
 )
 
 var (
-	LogFile       string
-	BlockDuration int
-	TorrentTag    string
-	BlockMode     string
-	BypassIPSet   = make(map[string]struct{})
-	IgnoreEmail   bool
-	StorageDir    string
+	LogFile         string
+	XrayWebhookAddr string
+	BlockDuration   int
+	TorrentTag      string
+	BlockMode       string
+	BypassIPSet     = make(map[string]struct{})
+	IgnoreEmail     bool
+	StorageDir      string
 
 	SendWebhook     bool
 	WebhookURL      string
@@ -36,6 +37,7 @@ var (
 
 type Config struct {
 	LogFile         string            `yaml:"LogFile"`
+	XrayWebhookAddr string            `yaml:"XrayWebhookAddr"`
 	BlockDuration   int               `yaml:"BlockDuration"`
 	TorrentTag      string            `yaml:"TorrentTag"`
 	UsernameRegex   string            `yaml:"UsernameRegex"`
@@ -63,6 +65,7 @@ func LoadConfig(configPath string) error {
 	}
 
 	LogFile = cfg.LogFile
+	XrayWebhookAddr = cfg.XrayWebhookAddr
 	BlockDuration = cfg.BlockDuration
 	TorrentTag = cfg.TorrentTag
 	IgnoreEmail = cfg.IgnoreEmail

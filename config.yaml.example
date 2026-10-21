@@ -1,6 +1,12 @@
-# Обязательный. Путь к файлу логов, который будет мониториться.
-# Required. Path to the log file to be monitored.
+# Обязательный, если не задан XrayWebhookAddr. Путь к файлу логов, который будет мониториться.
+# Required unless XrayWebhookAddr is set. Path to the log file to be monitored.
 LogFile: "/var/log/remnanode/access.log"
+
+# Опциональный. Адрес (host:port) для приёма вебхуков Xray-core вместо чтения LogFile (или вместе с ним).
+# Optional. Listen address (host:port) for Xray-core routing webhooks, instead of (or alongside) LogFile.
+# Формат: "host:port", "unix:/path.sock", "/path.sock", "@abstract" или "@@abstract" (как в Xray).
+# Format: "host:port", "unix:/path.sock", "/path.sock", "@abstract" or "@@abstract" (Xray syntax).
+# XrayWebhookAddr: "127.0.0.1:7071"
 
 # Обязательный. Продолжительность блокировки IP-адреса в минутах.
 # Required. Duration of IP address blocking in minutes.
