@@ -22,7 +22,17 @@ func main() {
 
 	utils.InitConntrackManager()
 
-	utils.StartLogMonitor()
+	if config.XrayWebhookAddr != "" {
+		go utils.StartXrayWebhookServer(config.XrayWebhookAddr)
+	}
+
+	if config.LogFile != "" {
+		utils.StartLogMonitor()
+	} else if config.XrayWebhookAddr != "" {
+		select {}
+	} else {
+		log.Fatal("Neither LogFile nor XrayWebhookAddr is set")
+	}
 }
 
 func initConfig() {

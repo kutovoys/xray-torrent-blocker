@@ -142,6 +142,9 @@ BypassIPS:
 # Игнорировать отсутствие поля email в логах (для сценариев TPROXY)
 IgnoreEmail: false
 
+# Приём вебхуков маршрутизации Xray-core вместо (или вместе с) чтения LogFile
+# XrayWebhookAddr: "127.0.0.1:7071"
+
 # Директория для хранения данных о блокировке
 StorageDir: "/opt/tblocker"
 
@@ -181,6 +184,21 @@ WebhookHeaders:
      "tag": "TORRENT"
    }
    ```
+
+### Вебхуки Xray (вместо файлов логов)
+
+Задайте `XrayWebhookAddr` (`LogFile` можно оставить пустым) и добавьте `webhook` в правило маршрутизации торрентов в конфиге Xray. `tblocker` блокирует IP из `source` для событий, у которых `outboundTag` равен `TorrentTag`:
+
+```json
+{
+  "protocol": ["bittorrent"],
+  "outboundTag": "TORRENT",
+  "type": "field",
+  "webhook": { "url": "http://127.0.0.1:7071/webhook/xray" }
+}
+```
+
+`XrayWebhookAddr` также принимает Unix-сокеты в синтаксисе Xray: `unix:/run/tblocker.sock`, `/run/tblocker.sock`, `@tblocker` (abstract) или `@@tblocker` (padded abstract). В этом случае в URL вебхука Xray указывается тот же сокет и HTTP-путь, например `"url": "@tblocker:/webhook/xray"`.
 
 ### Remnawave
 

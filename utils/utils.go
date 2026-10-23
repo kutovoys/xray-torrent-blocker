@@ -155,6 +155,10 @@ func handleLogEntry(line string) {
 		return
 	}
 
+	blockUser(ip, usernameStr)
+}
+
+func blockUser(ip, usernameStr string) {
 	if IsBypassedIP(ip) {
 		return
 	}

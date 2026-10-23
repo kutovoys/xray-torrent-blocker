@@ -134,6 +134,9 @@ BlockMode: "iptables"
 For advanced usage, you can configure additional features:
 
 ```yaml
+# Receive Xray-core routing webhooks instead of (or alongside) tailing LogFile
+# XrayWebhookAddr: "127.0.0.1:7071"
+
 # IP addresses to bypass blocking
 BypassIPS:
   - "127.0.0.1"
@@ -181,6 +184,21 @@ WebhookHeaders:
      "tag": "TORRENT"
    }
    ```
+
+### Xray webhooks (instead of log files)
+
+Set `XrayWebhookAddr` (and leave `LogFile` empty if you don't need log tailing), then add `webhook` to the torrent routing rule in the Xray config. `tblocker` blocks the `source` IP of events whose `outboundTag` equals `TorrentTag`:
+
+```json
+{
+  "protocol": ["bittorrent"],
+  "outboundTag": "TORRENT",
+  "type": "field",
+  "webhook": { "url": "http://127.0.0.1:7071/webhook/xray" }
+}
+```
+
+`XrayWebhookAddr` also accepts Unix sockets in Xray's syntax: `unix:/run/tblocker.sock`, `/run/tblocker.sock`, `@tblocker` (abstract) or `@@tblocker` (padded abstract). Xray then uses the same socket plus the HTTP path in the webhook URL, e.g. `"url": "@tblocker:/webhook/xray"`.
 
 ### Remnawave
 
